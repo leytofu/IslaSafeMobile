@@ -22,8 +22,10 @@ import { deleteSos, editPending, listSos, saveSos, sendSos } from "../lib/sos";
 import { errorMessage } from "../lib/api";
 import { captureLocation } from "../lib/location";
 import { useApp } from "../state/AppState";
+import { ReferenceSosHero } from "../components/ResidentReferenceViews";
 export default function SosScreen({ guest = false }: { guest?: boolean }) {
-  const { user, online, offlineSaving } = useApp();
+  const { user, online, offlineSaving, theme } = useApp();
+  const [showDetails, setShowDetails] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [contact, setContact] = useState(user?.contact_number || "");
   const [location, setLocation] = useState("");
@@ -72,6 +74,7 @@ export default function SosScreen({ guest = false }: { guest?: boolean }) {
     }
   }
   function load(entry: LocalSos) {
+    setShowDetails(true);
     setEditing(entry.localId);
     setName(entry.body.name);
     setContact(entry.body.contact);
@@ -140,10 +143,11 @@ export default function SosScreen({ guest = false }: { guest?: boolean }) {
           disabled={busy}
         />
       )}
+      {!showDetails && <ReferenceSosHero theme={theme} disabled={busy} onPrepare={() => setShowDetails(true)} />}
       <Notice text="Sending an SOS does not guarantee immediate rescue. A local draft is not received by responders. If the send is interrupted, contact local responders before considering another request." />
       {!!error && <Notice error text={error} />}
       {!!message && <Notice text={message} />}
-      <Card>
+      {showDetails && <Card>
         <Copy title>
           {editing ? "Review saved details" : "Emergency details"}
         </Copy>
@@ -248,7 +252,7 @@ export default function SosScreen({ guest = false }: { guest?: boolean }) {
             }}
           />
         )}
-      </Card>
+      </Card>}
       <Copy title>On this device</Copy>
       <Copy muted>
         Saved details remain here until you delete them. Pending requests never

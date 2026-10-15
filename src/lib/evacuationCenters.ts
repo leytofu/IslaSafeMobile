@@ -11,6 +11,7 @@ export type MapCenter = {
   status: string;
 };
 export type IslandMapProps = {
+  compact?: boolean;
   centers: MapCenter[];
   selectedCenterId: number | null;
   onSelectCenter: (id: number) => void;

@@ -14,29 +14,9 @@ import { supportedRole, User, type Role } from "../lib/contracts";
 import { INTRO_SEEN_KEY, restoreSession, signOutSession } from "../lib/session";
 import { clearToken, readToken, saveToken } from "../lib/credentials";
 import { removeSecret, writeSecret } from "../lib/vault";
+import { palettes } from "../theme/colors";
+export { palettes } from "../theme/colors";
 
-export const palettes = {
-  dark: {
-    bg: "#050810",
-    card: "#0c1424",
-    border: "#223049",
-    text: "#eef3f9",
-    muted: "#aab6c8",
-    primary: "#2946d8",
-    danger: "#df3048",
-    tint: "#101f4b",
-  },
-  light: {
-    bg: "#f3f6fb",
-    card: "#ffffff",
-    border: "#d4ddea",
-    text: "#101d35",
-    muted: "#52627a",
-    primary: "#2946d8",
-    danger: "#c81f34",
-    tint: "#e7edff",
-  },
-};
 type AppContext = {
   user: User | null;
   ready: boolean;
@@ -52,9 +32,10 @@ type AppContext = {
   setTheme: (theme: "dark" | "light") => Promise<void>;
   setOfflineSaving: (value: boolean) => Promise<void>;
   authenticate: (
-    path: "/auth/login" | "/auth/register",
+    path: "/auth/login" | "/auth/register" | "/auth/google",
     body: Record<string, string>,
     expectedRole?: Role,
+    remember?: boolean,
   ) => Promise<void>;
   refresh: () => Promise<void>;
   updateProfile: (body: Record<string, string>) => Promise<void>;
@@ -139,13 +120,14 @@ export function AppProvider({ children }: React.PropsWithChildren) {
         const preferenceKeys = [
           "islasafe.theme",
           "islasafe.offline-saving",
-          INTRO_SEEN_KEY,
         ];
         const preferences = await AsyncStorage.multiGet(preferenceKeys).catch(() => preferenceKeys.map((key) => [key, null] as const));
         if (mounted) {
           changeTheme(preferences[0][1] === "light" ? "light" : "dark");
           changeOfflineSaving(preferences[1][1] !== "false");
-          setIntroPending(preferences[2][1] !== "seen");
+          // Replay on each signed-out launch, even if a prior intro was seen.
+          // A verified restored session still proceeds straight to its dashboard.
+          setIntroPending(true);
         }
         const restored = await restoreSession({
           readToken,
@@ -204,8 +186,8 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       api.interceptors.response.eject(interceptor);
     };
   }, [completeIntro, expire, refresh]);
-  const authenticate: AppContext["authenticate"] = async (path, body, expectedRole) => {
-    if (path === "/auth/register" && expectedRole === "campmanager")
+  const authenticate: AppContext["authenticate"] = async (path, body, expectedRole, remember = true) => {
+    if ((path === "/auth/register" || path === "/auth/google") && expectedRole === "campmanager")
       throw new Error("Camp Manager accounts are assigned by an administrator.");
     const { data } = await publicApi.post<{ token: string; user: User }>(
       path,
@@ -227,7 +209,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     }
     try {
       await writeSecret("account", data.user);
-      await saveToken(data.token);
+      await saveToken(data.token, remember);
     } catch (error) {
       await publicApi
         .post(
@@ -305,7 +287,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     online,
     sessionMessage,
     theme,
-    colors: verified ? palettes[theme] : palettes.dark,
+    colors: palettes[theme],
     offlineSaving,
     introPending,
     introCycle,

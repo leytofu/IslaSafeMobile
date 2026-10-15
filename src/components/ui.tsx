@@ -18,6 +18,8 @@ import { Feather } from "@expo/vector-icons";
 import { useApp } from "../state/AppState";
 import { router, useFocusEffect } from "expo-router";
 import { listSos } from "../lib/sos";
+import { palettes, type ThemeMode } from "../theme/colors";
+import { ResidentMenuButton } from "./ResidentMenu";
 export function Copy({
   children,
   muted = false,
@@ -36,12 +38,8 @@ export function Copy({
     </Text>
   );
 }
-export function Screen({
-  children,
-  title,
-  subtitle,
-}: React.PropsWithChildren<{ title: string; subtitle?: string }>) {
-  const { colors, online, sessionMessage, user, verified } = useApp();
+export function SessionNotices() {
+  const { online, sessionMessage, user, verified } = useApp();
   const [savedCount, setSavedCount] = useState(0);
   useFocusEffect(
     useCallback(() => {
@@ -61,9 +59,40 @@ export function Screen({
       };
     }, [online]),
   );
+  return <>
+    {!online && (
+      <Notice text="Offline • Guides and reference maps are available. SOS requests must be reviewed and sent when connected." />
+    )}
+    {!!sessionMessage && <Notice text={sessionMessage} />}
+    {online && savedCount > 0 && (
+      <Card>
+        <Copy>
+          {savedCount} locally saved SOS record(s) need review.
+          Reconnecting does not send them.
+        </Copy>
+        <Button
+          secondary
+          title="Review local SOS records"
+          onPress={() =>
+            router.push(
+              verified && user?.role === "residents" ? "/resident/sos" : "/guest-sos",
+            )
+          }
+        />
+      </Card>
+    )}
+  </>;
+}
+export function Screen({
+  children,
+  title,
+  subtitle,
+  embedded = false,
+}: React.PropsWithChildren<{ title: string; subtitle?: string; embedded?: boolean }>) {
+  const { colors, user, theme, setTheme } = useApp();
   return (
     <SafeAreaView
-      edges={["top", "left", "right"]}
+      edges={embedded ? [] : ["top", "left", "right"]}
       style={[styles.flex, { backgroundColor: colors.bg }]}
     >
       <KeyboardAvoidingView
@@ -74,34 +103,15 @@ export function Screen({
           contentContainerStyle={styles.page}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.header}>
-            <Feather name="shield" size={28} color={colors.primary} />
+          {!embedded && <View style={styles.header}>
+            {user?.role === "residents" ? <ResidentMenuButton theme={theme} /> : <Feather name="shield" size={25} color={colors.primary} />}
             <View style={styles.flex}>
               <Copy title>{title}</Copy>
               {subtitle && <Copy muted>{subtitle}</Copy>}
             </View>
-          </View>
-          {!online && (
-            <Notice text="Offline • Guides and reference maps are available. SOS requests must be reviewed and sent when connected." />
-          )}
-          {!!sessionMessage && <Notice text={sessionMessage} />}
-          {online && savedCount > 0 && (
-            <Card>
-              <Copy>
-                {savedCount} locally saved SOS record(s) need review.
-                Reconnecting does not send them.
-              </Copy>
-              <Button
-                secondary
-                title="Review local SOS records"
-                onPress={() =>
-                  router.push(
-                    verified && user?.role === "residents" ? "/resident/sos" : "/guest-sos",
-                  )
-                }
-              />
-            </Card>
-          )}
+            {user?.role === "residents" && <Pressable accessibilityRole="button" accessibilityLabel="Toggle color theme" onPress={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }} style={[styles.headerTheme, { borderColor: colors.border }]}><Feather name={theme === "dark" ? "sun" : "moon"} size={19} color={colors.text} /></Pressable>}
+          </View>}
+          <SessionNotices />
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -289,6 +299,39 @@ export function Dialog({
     </Modal>
   );
 }
+export function SelectField({ label, value, options, onChange, disabled = false, placeholder = "Select barangay", themeOverride }: {
+  label: string; value: string; options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void; disabled?: boolean; placeholder?: string; themeOverride?: ThemeMode;
+}) {
+  const { colors: appColors } = useApp();
+  const colors = themeOverride ? palettes[themeOverride] : appColors;
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = options.find((item) => item.value === value);
+  return <View style={styles.field}>
+    <Text style={[styles.text, { color: colors.muted }]}>{label}</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ expanded: open, disabled }} disabled={disabled}
+      onPress={() => { setQuery(""); setOpen(true); }}
+      style={[styles.input, { borderColor: colors.border, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", gap: 12, opacity: disabled ? 0.6 : 1 }]}>
+      <Text style={[styles.text, { flex: 1, color: value ? colors.text : colors.muted }]}>{selected?.label || value || placeholder}</Text>
+      <Feather name="chevron-down" size={18} color={colors.muted} />
+    </Pressable>
+    <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <SafeAreaView style={styles.overlay}><View style={[styles.dialog, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 }]}>
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{label}</Text>
+      <TextInput accessibilityLabel="Search barangays" placeholder="Search barangays" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} autoCapitalize="words" style={[styles.input, { color: colors.text, backgroundColor: colors.bg, borderColor: colors.border }]} />
+      <ScrollView keyboardShouldPersistTaps="handled" style={styles.dialogScroll} contentContainerStyle={{ gap: 8 }}>
+      {options.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())).map((item) => <Pressable key={item.value} accessibilityRole="radio" accessibilityLabel={item.label} accessibilityState={{ checked: value === item.value, disabled }} disabled={disabled}
+        onPress={() => { onChange(item.value); setOpen(false); }} style={[styles.choice, { borderColor: value === item.value ? colors.primary : colors.border, backgroundColor: value === item.value ? colors.tint : colors.card, flexDirection: "row", alignItems: "center", gap: 10 }]}>
+        <Text style={[styles.text, { color: colors.text, flex: 1 }]}>{item.label}</Text>{value === item.value && <Feather name="check" size={18} color={colors.primary} />}
+      </Pressable>)}
+      {!options.some((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())) && <Text style={[styles.text, { color: colors.muted }]}>No matching barangays.</Text>}
+      </ScrollView>
+      <Pressable accessibilityRole="button" accessibilityLabel="Close barangay list" onPress={() => setOpen(false)} style={[styles.button, { borderColor: colors.border, backgroundColor: colors.bg }]}><Text style={[styles.buttonText, { color: colors.text }]}>Close</Text></Pressable>
+      </View></SafeAreaView>
+    </Modal>
+  </View>;
+}
 export function Choices<T extends string>({
   label,
   values,
@@ -336,7 +379,8 @@ export function Choices<T extends string>({
 }
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  page: { padding: 20, gap: 16, paddingBottom: 36 },
+  page: { padding: 18, gap: 14, paddingBottom: 36, width: "100%", maxWidth: 640, alignSelf: "center" },
+  headerTheme: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -344,8 +388,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   text: { fontSize: 15, lineHeight: 23 },
-  title: { fontSize: 23, fontWeight: "700", lineHeight: 31 },
-  card: { borderWidth: 1, borderRadius: 16, padding: 18, gap: 12 },
+  title: { fontSize: 18, fontWeight: "700", lineHeight: 26, letterSpacing: -0.4 },
+  card: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
   button: {
     minHeight: 52,
     borderRadius: 12,

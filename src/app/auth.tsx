@@ -9,12 +9,12 @@ import { AuthSurface } from "../components/AuthSurface";
 import { errorMessage, publicApi } from "../lib/api";
 import { useApp } from "../state/AppState";
 export default function Auth() {
-  const { user, ready, verified, introPending, authenticate } = useApp();
-  const params = useLocalSearchParams<{ role?: string }>();
+  const { user, ready, verified, introPending, authenticate, logout } = useApp();
+  const params = useLocalSearchParams<{ role?: string; recovery?: string }>();
   const role = supportedRole(params.role) ? params.role : null;
-  const [mode, setMode] = useState<"login" | "register" | "recovery">("login");
+  const [mode, setMode] = useState<"login" | "register" | "recovery">(params.recovery === "1" ? "recovery" : "login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(params.recovery === "1" ? user?.email ?? "" : "");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [otp, setOtp] = useState("");
@@ -26,9 +26,10 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const lock = useRef(false);
   if (!ready) return <SessionLoading />;
-  if (user && verified)
+  if (user && verified && params.recovery !== "1")
     return (
       <Redirect
         href={dashboardFor(user.role)}
@@ -56,6 +57,12 @@ export default function Auth() {
     try {
       await task();
     } catch (e) {
+      if (mode === "register" && isAxiosError(e) && e.response?.status === 422) {
+        const fields = e.response.data?.errors;
+        if (fields?.name) setRegistrationStep(0);
+        else if (fields?.email) setRegistrationStep(1);
+        else if (fields?.password || fields?.password_confirmation) setRegistrationStep(2);
+      }
       if (mode === "recovery" && isAxiosError(e) && (e.response?.status === 410 || (phase === 1 && e.response?.status === 429 && String(e.response.data?.message).includes("Too many attempts")) || (phase === 2 && e.response?.status === 422 && String(e.response.data?.message).includes("invalid or has expired")))) {
         setPhase(0);
         setChallenge("");
@@ -73,11 +80,14 @@ export default function Auth() {
   }
   function submit() {
     void run(async () => {
-      if (mode === "register" && registrationStep === 0) {
-        if (!name.trim()) throw new Error("Enter your full name.");
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("Enter a valid email address.");
-        setRegistrationStep(1);
-        return;
+      if (mode === "register") {
+        if (!name.trim()) { setRegistrationStep(0); throw new Error("Enter your full name."); }
+        if (registrationStep === 0) { setRegistrationStep(1); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setRegistrationStep(1); throw new Error("Enter a valid email address."); }
+        if (registrationStep === 1) { setRegistrationStep(2); return; }
+        if (password.length < 8) { setRegistrationStep(2); throw new Error("Choose a password with at least 8 characters."); }
+        if (password !== confirmation) { setRegistrationStep(2); throw new Error("Your passwords don’t match. Please try again."); }
+        if (registrationStep === 2) { setRegistrationStep(3); return; }
       }
       if (mode !== "recovery") {
         if (!email.trim() || !password)
@@ -95,6 +105,7 @@ export default function Auth() {
                 password_confirmation: confirmation,
               },
           role ?? undefined,
+          mode === "login" ? rememberMe : true,
         );
         setPassword("");
         setConfirmation("");
@@ -127,6 +138,7 @@ export default function Auth() {
           password,
           password_confirmation: confirmation,
         });
+        if (user) await logout();
         changeMode("login");
         setMessage(data.message);
       }
@@ -139,6 +151,8 @@ export default function Auth() {
       phase={phase}
       registrationStep={registrationStep}
       busy={busy}
+      rememberMe={rememberMe}
+      onRememberMeChange={setRememberMe}
       error={error}
       message={message}
       name={{ value: name, onChangeText: setName }}
@@ -147,11 +161,16 @@ export default function Auth() {
       confirmation={{ value: confirmation, onChangeText: setConfirmation }}
       otp={{ value: otp, onChangeText: setOtp }}
       onSubmit={submit}
+      onRegistrationStepChange={(step) => { if (busy) return; setRegistrationStep(step); setError(""); }}
       onModeChange={changeMode}
       onBack={() => {
         Keyboard.dismiss();
-        if (mode === 'register' && registrationStep === 1) {
-          setRegistrationStep(0);
+        if (params.recovery === "1" && user) {
+          router.replace("/resident/profile");
+          return;
+        }
+        if (mode === 'register' && registrationStep > 0) {
+          setRegistrationStep(registrationStep - 1);
           setError('');
         } else if (mode !== 'login') changeMode('login');
         else router.replace('/welcome');

@@ -8,6 +8,12 @@ export type User = {
   office?: string | null;
   jurisdiction?: string | null;
   avatar_url?: string | null;
+  has_local_password?: boolean;
+  google_linked?: boolean;
+  barangay?: string | null;
+  address?: string | null;
+  profile_complete?: boolean;
+  resident_verified?: boolean;
 };
 export function supportedRole(role: unknown): role is Role {
   return role === "residents" || role === "campmanager";

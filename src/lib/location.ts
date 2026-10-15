@@ -1,6 +1,20 @@
 import * as Location from "expo-location";
+let permissionRequest: Promise<Location.LocationPermissionResponse> | null = null;
+
+/** Permission only: never reads, stores, or uploads the user's coordinates. */
+export function requestLocationPermission() {
+  if (!permissionRequest) {
+    permissionRequest = (async () => {
+      const current = await Location.getForegroundPermissionsAsync();
+      if (current.granted || !current.canAskAgain) return current;
+      return Location.requestForegroundPermissionsAsync();
+    })().finally(() => { permissionRequest = null; });
+  }
+  return permissionRequest;
+}
+
 export async function captureLocation() {
-  const permission = await Location.requestForegroundPermissionsAsync();
+  const permission = await requestLocationPermission();
   if (!permission.granted)
     throw new Error(
       "Location permission was denied. Enter known coordinates and a location description manually, or allow location in Android settings.",

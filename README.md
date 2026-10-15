@@ -2,9 +2,13 @@
 
 React Native / Expo SDK **57.0.28**, TypeScript, Expo Router, MapLibre React Native **11.5.0**. All application changes are contained in `mobile/`. Backend source, migrations, and the admin frontend are not changed. This project does not configure EAS, Play Console, production signing, production hosting, or live push notifications. `ISLASAFE_BUILD=production` deliberately rejects configuration.
 
+## Expo Go on a physical phone
+
+Run `npm start -- --lan --clear`, scan the Expo Go QR code, and reload the project after pulling changes. Home and Hazard Map use bundled MapLibre GL JS 6.10.0 through Expo Go’s included WebView when native MapLibre is absent. No APK is needed for this path. See [phone map setup](docs/PHONE_MAP_SETUP.md). Existing custom IslaSafe development builds retain native MapLibre; use `npm run start:dev-client` for those builds.
+
 ## Local Android setup
 
-Use Node 22.13+ (tested here with Node 24.15), Android Studio, its bundled JDK, Android SDK platform/build tools 36, and the existing `Pixel_6` AVD. The first local Gradle build downloads free dependencies and can take several minutes. MapLibre is a native module; standard Expo Go is insufficient.
+Use Node 22.13+ (tested here with Node 24.15), Android Studio, its bundled JDK, Android SDK platform/build tools 36, and the existing `Pixel_6` AVD. The first local Gradle build downloads free dependencies and can take several minutes. The optional MapLibre React Native renderer needs a custom build. Expo Go uses the MapLibre GL JS fallback described above.
 
 From PowerShell in `mobile/`:
 

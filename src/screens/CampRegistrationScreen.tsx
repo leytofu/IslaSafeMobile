@@ -3,7 +3,7 @@ import { Pressable, StyleSheet } from "react-native";
 import * as Crypto from "expo-crypto";
 import { router } from "expo-router";
 import { isAxiosError } from "axios";
-import { Button, Card, Choices, Copy, Field, Loading, Notice, Screen } from "../components/ui";
+import { Button, Card, Choices, Copy, Field, Loading, Notice, Screen, SelectField } from "../components/ui";
 import { useCampContext } from "../hooks/useCampContext";
 import { useApp } from "../state/AppState";
 import { api, errorMessage } from "../lib/api";
@@ -20,7 +20,6 @@ export default function CampRegistrationScreen() {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [restored, setRestored] = useState(false);
   const [query, setQuery] = useState("");
-  const [placeQuery, setPlaceQuery] = useState("");
   const [matches, setMatches] = useState<PersonHint[]>([]);
   const [person, setPerson] = useState<Person | null>(null);
   const [searching, setSearching] = useState(false);
@@ -107,8 +106,7 @@ export default function CampRegistrationScreen() {
         <Copy muted>{ageGroup(age)}{person?.age_recorded_at && !draft.date_of_birth ? " · Confirm the reported age is still current" : ""}</Copy>
         {!draft.submitted && <Choices label="Gender" values={data.genders.map(label)} value={label(draft.gender)} onChange={(value) => change("gender", data.genders.find((item) => label(item) === value) ?? "unspecified")} />}
         {draft.submitted && <Copy>Gender: {label(draft.gender)}</Copy>}
-        <Field label="Search authorized barangays" value={placeQuery} onChangeText={setPlaceQuery} editable={!busy && !draft.submitted} />
-        {data.places.filter((place) => `${place.barangay} ${place.municipality}`.toLowerCase().includes(placeQuery.toLowerCase())).map((place) => <Pressable key={place.id} accessibilityRole="radio" accessibilityState={{ checked: draft.place_id === place.id, disabled: busy || draft.submitted }} disabled={busy || draft.submitted} onPress={() => change("place_id", place.id)} style={[styles.place, { borderColor: draft.place_id === place.id ? colors.primary : colors.border, backgroundColor: draft.place_id === place.id ? colors.tint : colors.card }]}><Copy>{place.barangay} · {place.municipality}</Copy></Pressable>)}
+        <SelectField label="Barangay" value={draft.place_id?.toString() ?? ""} disabled={busy || draft.submitted} options={data.places.map((place) => ({ value: String(place.id), label: `${place.barangay} - ${place.municipality}` }))} onChange={(value) => change("place_id", Number(value))} />
         <Field label="Purok / Sitio (optional)" value={draft.purok} onChangeText={(value) => change("purok", value)} editable={!busy && !draft.submitted} maxLength={120} autoCapitalize="words" />
       </Card>
       {draft.submitted && <Notice text="This draft was submitted but confirmation may have been interrupted. Retry the unchanged request to retrieve its result; the server prevents duplicate registration." />}

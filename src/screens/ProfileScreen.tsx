@@ -12,7 +12,9 @@ import {
 } from "../components/ui";
 import { useApp } from "../state/AppState";
 import { errorMessage } from "../lib/api";
-export default function ProfileScreen() {
+import { ReferenceSettings } from "../components/ResidentReferenceViews";
+import { BarangayField } from "../components/BarangayField";
+export default function ProfileScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     user,
     verified,
@@ -30,11 +32,15 @@ export default function ProfileScreen() {
     contact_number: user?.contact_number || "",
     office: user?.office || "",
     jurisdiction: user?.jurisdiction || "",
+    barangay: user?.barangay || "",
+    address: user?.address || "",
   });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [editProfile, setEditProfile] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
   const lock = useRef(false);
   async function run(task: () => Promise<void>) {
     if (lock.current) return;
@@ -53,7 +59,8 @@ export default function ProfileScreen() {
   }
   return (
     <Screen
-      title="Your profile"
+      embedded={embedded}
+      title={user?.role === "residents" ? "Settings" : "Your profile"}
       subtitle={
         user?.role === "campmanager"
           ? "Camp Manager account"
@@ -62,6 +69,12 @@ export default function ProfileScreen() {
     >
       {!!error && <Notice error text={error} />}
       {!!message && <Notice text={message} />}
+      {user?.role === "residents" && !editProfile && !showOffline && <ReferenceSettings theme={theme} user={user}
+        onToggleTheme={() => { void run(() => setTheme(theme === "dark" ? "light" : "dark")); }}
+        onEditProfile={() => setEditProfile((current) => !current)}
+        onOffline={() => setShowOffline((current) => !current)} />}
+      {user?.role === "residents" && (editProfile || showOffline) && <Button secondary title="Back to settings" onPress={() => { setEditProfile(false); setShowOffline(false); }} />}
+      {(user?.role !== "residents" || editProfile) && <>
       <Card>
         <Copy title>{user?.name}</Copy>
         <Copy muted>{user?.email}</Copy>
@@ -79,10 +92,17 @@ export default function ProfileScreen() {
       </Card>
       <Card>
         <Copy title="Account information" />
+        {user?.role === "residents" && <>
+          <Copy muted>Sign in with your email address and IslaSafe password.</Copy>
+          <Button secondary title={user.has_local_password === false ? "Set IslaSafe Password" : "Change IslaSafe password"} disabled={!verified || busy}
+            onPress={() => user.has_local_password === false
+              ? router.push("/account-security")
+              : router.push({ pathname: "/auth", params: { role: "residents", recovery: "1" } })} />
+        </>}
       </Card>
       <Card>
-        {(Object.keys(fields) as (keyof typeof fields)[]).map((key) => (
-          <Field
+        {(Object.keys(fields) as (keyof typeof fields)[]).filter((key) => user?.role === "residents" || !["barangay", "address"].includes(key)).map((key) => (
+          key === "barangay" ? <BarangayField key={key} value={fields.barangay} onChange={(value) => setFields((current) => ({ ...current, barangay: value }))} disabled={busy} /> : <Field
             key={key}
             label={
               {
@@ -91,6 +111,8 @@ export default function ProfileScreen() {
                 contact_number: "Contact number",
                 office: "Office (optional)",
                 jurisdiction: "Jurisdiction (optional)",
+                barangay: "Barangay",
+                address: "Complete address",
               }[key]
             }
             value={fields[key]}
@@ -105,7 +127,7 @@ export default function ProfileScreen() {
                   ? "phone-pad"
                   : "default"
             }
-            editable={!busy}
+            editable={!busy && !(key === "email" && user?.google_linked)}
           />
         ))}
         <Button
@@ -114,12 +136,15 @@ export default function ProfileScreen() {
           loading={busy}
           onPress={() =>
             void run(async () => {
-              await updateProfile(fields);
+              const { barangay, address, ...common } = fields;
+              await updateProfile(user?.role === "residents" ? { ...common, barangay, address } : common);
               setMessage("Profile updated successfully.");
             })
           }
         />
       </Card>
+      </>}
+      {user?.role !== "residents" && <>
       <Card>
         <Copy title="Appearance" />
         <Choices
@@ -129,6 +154,8 @@ export default function ProfileScreen() {
           onChange={(value) => void run(() => setTheme(value))}
         />
       </Card>
+      </>}
+      {(user?.role !== "residents" || showOffline) && <>
       <Card>
         <Copy title="Offline preparedness" />
         <Choices
@@ -155,6 +182,7 @@ export default function ProfileScreen() {
           }
         />
       </Card>
+      </>}
       <Button
         danger
         title="Sign out"

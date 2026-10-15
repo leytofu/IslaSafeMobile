@@ -18,6 +18,11 @@ const config: ExpoConfig = {
   },
   ios: { bundleIdentifier: "ph.islasafe.mobile", supportsTablet: true },
   plugins: [
+    ...(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+      ? [["react-native-nitro-google-signin", {
+          iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME,
+        }] as [string, { iosUrlScheme: string | undefined }]]
+      : []),
     "./plugins/withShortNativePaths",
     "expo-router",
     "expo-secure-store",

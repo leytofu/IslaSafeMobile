@@ -1,12 +1,8 @@
 import * as SecureStore from "expo-secure-store";
-export async function readToken() {
-  return SecureStore.getItemAsync("islasafe.token");
-}
-export async function saveToken(token: string) {
-  if (new TextEncoder().encode(token).length > 1800)
-    throw new Error("Authentication token exceeds the secure storage budget.");
-  await SecureStore.setItemAsync("islasafe.token", token);
-}
-export async function clearToken() {
-  await SecureStore.deleteItemAsync("islasafe.token");
-}
+import { createTokenStore } from "./tokenStore";
+
+export const { readToken, saveToken, clearToken } = createTokenStore({
+  read: () => SecureStore.getItemAsync("islasafe.token"),
+  write: (token) => SecureStore.setItemAsync("islasafe.token", token),
+  remove: () => SecureStore.deleteItemAsync("islasafe.token"),
+});
