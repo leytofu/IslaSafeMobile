@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { useFocusEffect, router } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Platform } from "react-native";
 import {
   Button,
@@ -23,8 +23,11 @@ import { errorMessage } from "../lib/api";
 import { captureLocation } from "../lib/location";
 import { useApp } from "../state/AppState";
 import { ReferenceSosHero } from "../components/ResidentReferenceViews";
+import { SosEmergencyPicker } from "../components/SosEmergencyPicker";
 export default function SosScreen({ guest = false }: { guest?: boolean }) {
   const { user, online, offlineSaving, theme } = useApp();
+  const { prepare } = useLocalSearchParams<{ prepare?: string }>();
+  const [pickingType, setPickingType] = useState(prepare === "1");
   const [showDetails, setShowDetails] = useState(false);
   const [name, setName] = useState(user?.name || "");
   const [contact, setContact] = useState(user?.contact_number || "");
@@ -48,10 +51,11 @@ export default function SosScreen({ guest = false }: { guest?: boolean }) {
   }, []);
   useFocusEffect(
     useCallback(() => {
+      if (prepare === "1") setPickingType(true);
       void reload().catch((e) =>
         setError(`Secure records could not be read: ${errorMessage(e)}`),
       );
-    }, [reload]),
+    }, [reload, prepare]),
   );
   async function run(action: () => Promise<void>) {
     if (lock.current) return;
@@ -134,16 +138,19 @@ export default function SosScreen({ guest = false }: { guest?: boolean }) {
     <Screen
       title={guest ? "Guest emergency SOS" : "Emergency SOS"}
       subtitle="Tell responders where you are and what you need"
+      onBack={showDetails ? () => setShowDetails(false) : undefined}
+      backLabel={showDetails ? "Back to SOS" : "Back"}
+      backDisabled={busy}
     >
-      {guest && (
-        <Button
-          secondary
-          title="Back to sign in"
-          onPress={() => router.replace("/auth")}
-          disabled={busy}
-        />
-      )}
-      {!showDetails && <ReferenceSosHero theme={theme} disabled={busy} onPrepare={() => setShowDetails(true)} />}
+      {!showDetails && <ReferenceSosHero theme={theme} disabled={busy} onPrepare={() => setPickingType(true)} />}
+      {pickingType && <SosEmergencyPicker theme={theme} initialType={type} initialDetails={description} onClose={() => setPickingType(false)} onContinue={(selectedType, details) => {
+        setType(selectedType);
+        setDescription(details);
+        if (selectedType === "Medical Emergency") setCategory("Medical");
+        else if (selectedType === "Need Evacuation" || selectedType === "Stranded Family") setCategory("Evacuation");
+        setPickingType(false);
+        setShowDetails(true);
+      }} />}
       <Notice text="Sending an SOS does not guarantee immediate rescue. A local draft is not received by responders. If the send is interrupted, contact local responders before considering another request." />
       {!!error && <Notice error text={error} />}
       {!!message && <Notice text={message} />}
@@ -151,6 +158,7 @@ export default function SosScreen({ guest = false }: { guest?: boolean }) {
         <Copy title>
           {editing ? "Review saved details" : "Emergency details"}
         </Copy>
+        <Button secondary title={type ? `Change emergency type · ${type}` : "Choose emergency type"} disabled={busy} onPress={() => setPickingType(true)} />
         <Field
           label="Your full name"
           value={name}

@@ -94,7 +94,7 @@ export function AuthSurface({ role, mode, phase, registrationStep, busy, remembe
         </Animated.View>
         </ScrollView>
         <View style={[styles.footer, compact && styles.footerCompact]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Emergency SOS. Continue without signing in" onPress={() => { Keyboard.dismiss(); router.push("/guest-sos"); }} style={({ pressed }) => [styles.emergency, pressed && { opacity: 0.75 }]}><Feather name="alert-circle" size={18} color={colors.error} /><Text style={styles.emergencyText}>Emergency SOS</Text>{!compact && <Text style={styles.guest}>No account needed</Text>}</Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Emergency SOS. Continue without signing in" onPress={() => { Keyboard.dismiss(); router.push({ pathname: "/guest-sos", params: { prepare: "1" } }); }} style={({ pressed }) => [styles.emergency, pressed && { opacity: 0.75 }]}><Feather name="alert-circle" size={18} color={colors.error} /><Text style={styles.emergencyText}>Emergency SOS</Text>{!compact && <Text style={styles.guest}>No account needed</Text>}</Pressable>
           {!compact && <Text style={styles.municipality}>President Carlos P. Garcia · Bohol</Text>}
         </View>
       </View>

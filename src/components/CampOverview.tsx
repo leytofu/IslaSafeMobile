@@ -9,7 +9,7 @@ export function CampOverview({ centerOnly = false }: { centerOnly?: boolean }) {
   const { data, error, loading, refresh } = useCampContext();
   const { colors, user } = useApp();
   if (loading && !data) return <Loading text="Loading your assigned center…" />;
-  return <Screen title={centerOnly ? "Assigned center" : "Camp dashboard"} subtitle={`Welcome, ${user?.name}`}>
+  return <Screen showBack={centerOnly} title={centerOnly ? "Assigned center" : "Camp dashboard"} subtitle={`Welcome, ${user?.name}`}>
     {!!error && <Notice error text={error} />}
     {!data ? <Card><Copy title="Center assignment required" /><Copy muted>Your administrator must assign your center and registration area before you can access evacuee records.</Copy><Button secondary title="Refresh assignment" onPress={() => void refresh()} /></Card> : <>
       <Animated.View entering={FadeInUp.duration(250).reduceMotion(ReduceMotion.System)} style={[styles.hero, { backgroundColor: colors.tint, borderColor: colors.border }]}>

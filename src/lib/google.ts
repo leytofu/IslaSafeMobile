@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import { isRunningInExpoGo } from "expo";
 import { api, publicApi } from "./api";
 
 let inProgress = false;
@@ -9,6 +10,7 @@ export async function googleProof(purpose: "login" | "link" | "password") {
   const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
   if (!webClientId) throw new Error("Google sign-in is not configured. Use email and your IslaSafe password.");
   if (Platform.OS === "web") throw new Error("Google sign-in is available in the Android and iOS development builds.");
+  if (isRunningInExpoGo()) throw new Error("Google sign-in requires the IslaSafe development app. In Expo Go, sign in with your email and IslaSafe password.");
   inProgress = true;
   let native: typeof import("react-native-nitro-google-signin") | undefined;
   try {

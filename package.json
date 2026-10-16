@@ -18,6 +18,8 @@
     "expo-dev-client": "~57.0.20",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
+    "expo-image-manipulator": "~57.0.21",
+    "expo-image-picker": "~57.0.20",
     "expo-linking": "~57.0.13",
     "expo-location": "~57.0.21",
     "expo-network": "~57.0.2",
@@ -44,10 +46,12 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "esbuild": "^0.28.2",
+    "patch-package": "^8.0.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start --go",
+    "postinstall": "patch-package --error-on-fail",
+    "start": "expo start --go --lan",
     "start:dev-client": "expo start --dev-client",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",

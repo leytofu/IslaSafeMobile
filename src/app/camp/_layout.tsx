@@ -16,6 +16,7 @@ export default function CampLayout() {
   if (user.role !== "campmanager") return <Redirect href="/resident/home" />;
   return (
     <Tabs
+      backBehavior="history"
       detachInactiveScreens={false}
       screenOptions={{
         animation: "fade",

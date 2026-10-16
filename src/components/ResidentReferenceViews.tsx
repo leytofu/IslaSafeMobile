@@ -4,6 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import { dashboardPalettes, type ThemeMode } from "../theme/colors";
 import { Badge, Surface, type DashboardIcon } from "./dashboard/DashboardPrimitives";
 import type { User } from "../lib/contracts";
+import { UserAvatar } from "./UserAvatar";
 
 export function ReferenceSosHero({ theme, onPrepare, disabled = false }: { theme: ThemeMode; onPrepare?: () => void; disabled?: boolean }) {
   const c = dashboardPalettes[theme];
@@ -60,7 +61,7 @@ export function ReferenceSettings({ theme, user, onToggleTheme, onEditProfile, o
   const selected = settingsItems.find((item) => item.key === detail);
   return <View style={styles.stack}>
     <Surface colors={c} style={styles.profileCard}>
-      <View style={[styles.avatar, { backgroundColor: c.tint }]}><Text style={[styles.avatarText, { color: c.accent }]}>{(user?.name || "Juan Santos").slice(0, 1).toUpperCase()}</Text></View>
+      <UserAvatar user={user?.name ? { name: user.name, avatar_url: user.avatar_url } : undefined} theme={theme} size={52} />
       <View style={styles.flex}><Text style={[styles.heading, { color: c.text }]}>{user?.name || "Juan Santos"}</Text><Text style={[styles.caption, { color: c.muted }]}>{user?.barangay || "Poblacion"} · Resident</Text><Text style={[styles.caption, { color: c.subtle }]}>{user?.email || "juan@example.com"}</Text></View>
     </Surface>
     <Surface colors={c}><Text style={[styles.caption, { color: c.subtle, marginBottom: 12 }]}>APPEARANCE</Text><View style={styles.row}><View style={styles.inline}><Feather name={theme === "dark" ? "moon" : "sun"} size={20} color={c.accent} /><Text style={[styles.itemTitle, { color: c.text }]}>Dark Mode</Text></View><Switch accessibilityLabel="Dark Mode" value={theme === "dark"} onValueChange={onToggleTheme} trackColor={{ false: c.border, true: c.primary }} thumbColor="#ffffff" /></View></Surface>

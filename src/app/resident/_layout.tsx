@@ -13,6 +13,7 @@ export default function ResidentLayout() {
   if (user.profile_complete === false) return <Redirect href="/complete-profile" />;
   return (
     <Tabs
+      backBehavior="history"
       detachInactiveScreens={false}
       tabBar={() => <ResidentAccountBar />}
       screenOptions={{

@@ -27,4 +27,22 @@ The map document and its actual WebView bridge messages have been checked in a b
 
 ## Location privacy
 
-The startup prompt only requests foreground permission. It does not obtain, store, or upload coordinates. Home/Hazard Map GPS markers stay in component memory and the local map document; the app does not post them to Laravel, update a resident location field, or stream them to Admin. Existing SOS requests are a separate explicit submission flow and currently include their entered/captured coordinates for responders. No background location permission or tracking was added.
+On native launch the app requests foreground location permission. On Android,
+if Location services are off, it asks the user to enable them through the system
+location dialog. After approval, one shared foreground watcher obtains the first
+GPS fix. Home and Hazard Map automatically show and center on that fix, then
+update the marker as the user moves. The app shows the accuracy reported by the
+phone; approximate permission may give an approximate position.
+
+The watcher stops in the background and restarts on return. Denial does not block
+sign-in or other features. Map controls offer Enable location and a Settings link
+for retry. iOS location services must be enabled in Settings when disabled.
+Web previews request location only after a user presses Enable location.
+
+Coordinates stay in memory and the local map document. They are not posted to
+Laravel or streamed to Admin by the map. Submitting an SOS remains a separate,
+explicit action. No background permission or background location task is used.
+
+Location lifecycle regression tests live in `tests/foreground-location.test.ts`.
+The real Expo Go map document can be checked with simulated GPS bridge updates
+using `npx tsx scripts/location-map-review.mjs` (`PLAYWRIGHT_MODULE` required).

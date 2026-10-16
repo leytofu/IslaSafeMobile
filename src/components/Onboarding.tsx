@@ -24,7 +24,7 @@ function phase(time: number, start: number, end: number) {
   return value * value * (3 - 2 * value);
 }
 
-function BrandLetter({ letter, index, clock }: { letter: string; index: number; clock: SharedValue<number> }) {
+function BrandLetter({ letter, index, clock, revealed }: { letter: string; index: number; clock: SharedValue<number>; revealed: boolean }) {
   const { styles } = useOnboardingStyles();
   const style = useAnimatedStyle(() => {
     const reveal = phase(clock.get(), 100 + index * 40, 600 + index * 40);
@@ -35,7 +35,7 @@ function BrandLetter({ letter, index, clock }: { letter: string; index: number; 
       transform: [{ translateY: (1 - reveal) * 12 - morph * (1 - returnToBrand) * 10 }, { scaleX: 1 - morph * (1 - returnToBrand) * 0.55 }],
     };
   });
-  return <Animated.Text accessible={false} allowFontScaling={false} style={[styles.brandTitle, style]}>{letter}</Animated.Text>;
+  return <Animated.Text accessible={false} allowFontScaling={false} style={[styles.brandTitle, revealed ? styles.motionReady : style]}>{letter}</Animated.Text>;
 }
 
 function YearDigit({ digit, index, clock }: { digit: string; index: number; clock: SharedValue<number> }) {
@@ -47,9 +47,9 @@ function YearDigit({ digit, index, clock }: { digit: string; index: number; cloc
   return <Animated.Text allowFontScaling={false} style={[styles.yearDigit, motion]}>{digit}</Animated.Text>;
 }
 
-function RoleCard({ role, title, detail, icon, clock, delay, selected, disabled, reduceMotion, onSelect }: {
+function RoleCard({ role, title, detail, icon, clock, delay, selected, disabled, reduceMotion, revealed, onSelect }: {
   role: Role; title: string; detail: string; icon: "user" | "home"; clock: SharedValue<number>; delay: number;
-  selected: boolean; disabled: boolean; reduceMotion: boolean; onSelect: (role: Role) => void;
+  selected: boolean; disabled: boolean; reduceMotion: boolean; revealed: boolean; onSelect: (role: Role) => void;
 }) {
   const { navy, styles } = useOnboardingStyles();
   const pressed = useSharedValue(1);
@@ -62,7 +62,7 @@ function RoleCard({ role, title, detail, icon, clock, delay, selected, disabled,
   };
   useEffect(() => () => cancelAnimation(pressed), [pressed]);
   return (
-    <Animated.View style={style}>
+    <Animated.View style={revealed ? styles.motionReady : style}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${title}. ${detail}`}
@@ -102,6 +102,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
   const selecting = useRef(false);
   const finished = useRef(!shouldPlay);
   const mounted = useRef(true);
+  const navigated = useRef(false);
 
   const finish = useCallback(() => {
     if (!mounted.current) return;
@@ -128,6 +129,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
     } else {
       finish();
     }
+    const deadline = setTimeout(finish, DURATION + 700);
     const motion = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
       setReduceMotion(enabled);
       if (enabled) settle();
@@ -152,6 +154,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
     });
     return () => {
       mounted.current = false;
+      clearTimeout(deadline);
       cancelAnimation(clock);
       cancelAnimation(exit);
       motion.remove();
@@ -162,6 +165,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
 
   useFocusEffect(useCallback(() => {
     selecting.current = false;
+    navigated.current = false;
     setSelected(null);
     exit.set(0);
     return () => {
@@ -194,9 +198,15 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
   const surfaceMotion = useAnimatedStyle(() => ({ opacity: 1 - exit.get(), transform: [{ translateY: -8 * exit.get() }] }));
 
   const openAuth = useCallback((role: Role) => {
-    if (!mounted.current) return;
+    if (!mounted.current || navigated.current) return;
+    navigated.current = true;
     router.push({ pathname: "/auth", params: { role } });
   }, []);
+  useEffect(() => {
+    if (!selected) return;
+    const deadline = setTimeout(() => openAuth(selected), 350);
+    return () => clearTimeout(deadline);
+  }, [selected, openAuth]);
   const select = (role: Role) => {
     if (selecting.current || !selectable) return;
     selecting.current = true;
@@ -208,7 +218,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
   };
   const emergency = () => {
     settle();
-    router.push("/guest-sos");
+    router.push({ pathname: "/guest-sos", params: { prepare: "1" } });
   };
 
   return (
@@ -221,22 +231,22 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
         {!selectable && <Pressable accessibilityRole="button" accessibilityLabel="Skip intro" onPress={settle} style={styles.skip}><Text style={styles.skipText}>Skip intro</Text><Feather name="chevrons-right" size={16} color={navy.muted} /></Pressable>}
       </View>
       <ScrollView contentContainerStyle={styles.scroll} scrollEnabled={selectable}>
-        <Animated.View style={[styles.content, surfaceMotion]}>
-          <Animated.View style={[styles.brand, brandMotion]} accessible accessibilityLabel="IslaSafe. Pitogo Island Emergency System">
+        <Animated.View style={[styles.content, selectable && !selected ? styles.motionReady : surfaceMotion]}>
+          <Animated.View style={[styles.brand, selectable ? styles.motionReady : brandMotion]} accessible accessibilityLabel="IslaSafe. Pitogo Island Emergency System">
             <View style={styles.logoFrame}><Image source={require("../../assets/app-logo.png")} style={styles.logo} resizeMode="contain" accessibilityLabel="Municipality of President Carlos P. Garcia seal" /></View>
             <View style={styles.titleStage} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <View style={styles.letters}>{"IslaSafe".split("").map((letter, index) => <BrandLetter key={`${letter}-${index}`} letter={letter} index={index} clock={clock} />)}</View>
-              <Animated.View style={[styles.year, yearMotion]}>{new Date().getFullYear().toString().split("").map((digit, index) => <YearDigit key={index} digit={digit} index={index} clock={clock} />)}</Animated.View>
+              <View style={styles.letters}>{"IslaSafe".split("").map((letter, index) => <BrandLetter key={`${letter}-${index}`} letter={letter} index={index} clock={clock} revealed={selectable} />)}</View>
+              <Animated.View style={[styles.year, selectable ? { opacity: 0 } : yearMotion]}>{new Date().getFullYear().toString().split("").map((digit, index) => <YearDigit key={index} digit={digit} index={index} clock={clock} />)}</Animated.View>
             </View>
-            <View style={styles.lineTrack}><Animated.View style={[styles.lineFill, lineMotion]} /></View>
+            <View style={styles.lineTrack}><Animated.View style={[styles.lineFill, selectable ? { transform: [{ scaleX: 1 }] } : lineMotion]} /></View>
             <Text style={styles.brandTag}>CONNECTED. PREPARED. PROTECTED.</Text>
           </Animated.View>
           <View accessibilityElementsHidden={!selectable} importantForAccessibility={selectable ? "auto" : "no-hide-descendants"} pointerEvents={selectable ? "auto" : "none"}>
-            <Animated.Text accessibilityRole="header" style={[styles.heading, headingMotion]}>Welcome to IslaSafe</Animated.Text>
-            <Animated.Text style={[styles.subtitle, subtitleMotion]}>Your community. Your safety.{"\n"}Choose how you’ll connect.</Animated.Text>
+            <Animated.Text accessibilityRole="header" style={[styles.heading, selectable ? styles.motionReady : headingMotion]}>Welcome to IslaSafe</Animated.Text>
+            <Animated.Text style={[styles.subtitle, selectable ? styles.motionReady : subtitleMotion]}>Your community. Your safety.{"\n"}Choose how you’ll connect.</Animated.Text>
             <View style={styles.cards}>
-              <RoleCard role="residents" title="Resident" detail="Stay informed, find safety, and request help." icon="user" clock={clock} delay={2650} selected={selected === "residents"} disabled={!selectable || Boolean(selected)} reduceMotion={reduceMotion} onSelect={select} />
-              <RoleCard role="campmanager" title="Camp Manager" detail="Coordinate your center and support evacuees." icon="home" clock={clock} delay={2800} selected={selected === "campmanager"} disabled={!selectable || Boolean(selected)} reduceMotion={reduceMotion} onSelect={select} />
+              <RoleCard role="residents" title="Resident" detail="Stay informed, find safety, and request help." icon="user" clock={clock} delay={2650} selected={selected === "residents"} disabled={!selectable || Boolean(selected)} reduceMotion={reduceMotion} revealed={selectable} onSelect={select} />
+              <RoleCard role="campmanager" title="Camp Manager" detail="Coordinate your center and support evacuees." icon="home" clock={clock} delay={2800} selected={selected === "campmanager"} disabled={!selectable || Boolean(selected)} reduceMotion={reduceMotion} revealed={selectable} onSelect={select} />
             </View>
             {!!sessionMessage && <Text accessibilityLiveRegion="polite" style={styles.notice}>{sessionMessage}</Text>}
             {!!sessionMessage && <Pressable accessibilityRole="button" disabled={retrying} onPress={() => { setRetrying(true); void refresh().finally(() => { if (mounted.current) setRetrying(false); }); }} style={styles.retry}><Text style={styles.link}>{retrying ? "Verifying session…" : "Retry session verification"}</Text></Pressable>}
@@ -259,6 +269,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
 
 const createStyles = (navy: typeof authPalettes.dark) => StyleSheet.create({
   root: { flex: 1, backgroundColor: navy.bg },
+  motionReady: { opacity: 1, transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }, { scaleX: 1 }] },
   flex: { flex: 1 },
   glowOne: { position: "absolute", top: -100, left: -100, width: 380, height: 380, borderRadius: 200, backgroundColor: "#4338ca", opacity: 0.055 },
   glowTwo: { position: "absolute", bottom: -80, right: -130, width: 360, height: 360, borderRadius: 200, backgroundColor: "#0e7490", opacity: 0.055 },

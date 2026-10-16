@@ -38,7 +38,7 @@ type AppContext = {
     remember?: boolean,
   ) => Promise<void>;
   refresh: () => Promise<void>;
-  updateProfile: (body: Record<string, string>) => Promise<void>;
+  updateProfile: (body: Record<string, string> | FormData) => Promise<void>;
   logout: () => Promise<void>;
 };
 const Context = createContext<AppContext | null>(null);
@@ -228,13 +228,16 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setSessionMessage("");
     completeIntro();
   };
-  const updateProfile = async (body: Record<string, string>) => {
+  const updateProfile = async (body: Record<string, string> | FormData) => {
     if (!user || !verified)
       throw new Error(
         "Reconnect and verify your session before changing your profile.",
       );
     const current = generation.current;
-    const { data } = await api.patch<{ user: User }>("/auth/profile", body);
+    // PHP parses multipart files on POST; Laravel's override routes this as PATCH.
+    const { data } = body instanceof FormData
+      ? await api.post<{ user: User }>("/auth/profile", body)
+      : await api.patch<{ user: User }>("/auth/profile", body);
     if (current !== generation.current) return;
     setUser(data.user);
     try {

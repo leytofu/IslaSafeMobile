@@ -36,7 +36,7 @@ export default function CompleteProfile() {
       setBusy(false);
     }
   }
-  return <Screen title="Complete your resident profile" subtitle="Tell us where you live so your profile is ready for IslaSafe.">
+  return <Screen showBack={false} title="Complete your resident profile" subtitle="Tell us where you live so your profile is ready for IslaSafe.">
     <Card><Copy muted>Your barangay and address are self-reported. Creating an account does not verify that you are a resident of Pitogo.</Copy></Card>
     {!!error && <Notice error text={error} />}
     <Card>

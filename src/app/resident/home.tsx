@@ -15,7 +15,7 @@ export default function Home() {
     statusContent={<SessionNotices />}
     mapContent={<ResidentHomeMap />}
     onToggleTheme={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }}
-    onSos={() => router.push("/resident/sos")}
+    onSos={() => router.push({ pathname: "/resident/sos", params: { prepare: "1" } })}
     onMap={() => router.push("/resident/map")}
     onGuides={() => router.push("/guides")}
     onHazards={() => router.push("/hazards")}

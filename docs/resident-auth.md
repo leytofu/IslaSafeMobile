@@ -9,6 +9,12 @@ then review. Only the final Create account action calls `/auth/register`.
 Successful registration continues to the existing barangay/address profile screen.
 Camp Managers still use administrator-issued email/password accounts.
 
+Resident and Camp Manager login uses Sanctum personal access tokens, stored with
+Expo SecureStore. Remember me is enabled by default, so reopening the app restores
+and verifies the saved token with `/auth/me`. Users may uncheck it for an in-memory
+login. Logout deletes the saved token and revokes it on the server. Admin web uses
+HttpOnly session cookies instead; see [authentication setup](../../backend/docs/authentication.md).
+
 The backend Google endpoints, provider identities, and existing account records
 remain intact. The Google configuration below documents the existing integration
 and the password-setup path for legacy linked accounts; it is not required for

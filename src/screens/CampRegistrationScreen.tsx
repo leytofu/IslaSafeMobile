@@ -94,7 +94,7 @@ export default function CampRegistrationScreen() {
   }
   const age = draft.date_of_birth ? ageFromBirthDate(draft.date_of_birth) : draft.reported_age === "" ? null : Number(draft.reported_age);
   if (!restored || (loading && !data)) return <Loading text="Preparing secure registration…" />;
-  return <Screen title="Register evacuee" subtitle={data?.center.name ?? "Assigned center"}>
+  return <Screen backDisabled={busy} title="Register evacuee" subtitle={data?.center.name ?? "Assigned center"}>
     {!!contextError && <Notice error text={contextError} />}{!!error && <Notice error text={error} />}
     {result ? <Card><Copy title>{result.already_registered ? "Already registered" : "Registration successful"}</Copy><Copy>{result.registration.full_name}</Copy><Copy>{result.registration.center.name} · {result.registration.event.name}</Copy><Copy muted>{result.registration.status.replaceAll("_", " ")} · Registration #{result.registration.id}</Copy><Copy title={`Total recorded evacuations: ${result.person.total_evacuations}`} /><Button title="Register another evacuee" onPress={() => { setResult(null); setDraft(emptyDraft()); setQuery(""); setPerson(null); setError(""); }} /><Button secondary title="Back to dashboard" onPress={() => router.replace("/camp/overview")} /></Card> : data && <>
       <Card><Copy title="Evacuation information" /><Copy>{data.center.name}</Copy><Copy muted>{data.event?.name ?? "No active event · Registration is unavailable"}</Copy><Copy muted>Date, event, and center are confirmed by the server.</Copy></Card>

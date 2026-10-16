@@ -1,17 +1,9 @@
 import { Linking } from "react-native";
-import { router } from "expo-router";
 import { Button, Card, Copy, Screen } from "../components/ui";
 import { guides } from "../data/preparedness";
 export default function Guides() {
   return (
     <Screen title="Preparedness guides" subtitle="Available offline • English">
-      <Button
-        secondary
-        title="Back"
-        onPress={() =>
-          router.canGoBack() ? router.back() : router.replace("/")
-        }
-      />
       <Copy muted>
         General preparedness guidance, paraphrased from official sources. These
         guides are not live warnings or evacuation orders.

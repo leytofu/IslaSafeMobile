@@ -26,7 +26,7 @@ export default function Auth() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const lock = useRef(false);
   if (!ready) return <SessionLoading />;
   if (user && verified && params.recovery !== "1")

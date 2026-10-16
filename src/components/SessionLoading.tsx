@@ -9,7 +9,7 @@ export function SessionLoading() {
   const { colors } = useApp();
   return <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]}>
     <View style={styles.status}><ActivityIndicator color={colors.primary} /><Text accessibilityLiveRegion="polite" style={[styles.text, { color: colors.muted }]}>Checking your secure session…</Text></View>
-    <Button danger icon="alert-circle" title="Emergency SOS · Continue as guest" onPress={() => router.push("/guest-sos")} />
+    <Button danger icon="alert-circle" title="Emergency SOS · Continue as guest" onPress={() => router.push({ pathname: "/guest-sos", params: { prepare: "1" } })} />
     <Button secondary title="Offline preparedness guides" onPress={() => router.push("/guides")} />
   </SafeAreaView>;
 }

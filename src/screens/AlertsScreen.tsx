@@ -12,9 +12,9 @@ import {
 import { api, errorMessage } from "../lib/api";
 import { SosReceipt } from "../lib/contracts";
 import { useApp } from "../state/AppState";
-import { ReferenceAlerts } from "../components/ResidentReferenceViews";
+import { AdvisoryInbox } from "../components/AdvisoryInbox";
 export default function AlertsScreen() {
-  const { user, verified, theme } = useApp();
+  const { user, verified } = useApp();
   const manager = user?.role === "campmanager";
   const [items, setItems] = useState<SosReceipt[]>([]);
   const [loadedAt, setLoadedAt] = useState("");
@@ -45,7 +45,7 @@ export default function AlertsScreen() {
   );
   return (
     <Screen title="Alerts & Advisories" subtitle="Community warnings and preparedness updates">
-      {!manager && <ReferenceAlerts theme={theme} />}
+      <AdvisoryInbox />
       <Unavailable
         title="Official warnings unavailable"
         detail="The backend has no verified official disaster-warning endpoint. No warning level or all-clear is inferred. Consult PAGASA, PHIVOLCS, and your local authorities."

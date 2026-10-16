@@ -16,10 +16,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useApp } from "../state/AppState";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 import { listSos } from "../lib/sos";
 import { palettes, type ThemeMode } from "../theme/colors";
 import { ResidentMenuButton } from "./ResidentMenu";
+import { BackButton } from "./BackButton";
 export function Copy({
   children,
   muted = false,
@@ -88,8 +89,14 @@ export function Screen({
   title,
   subtitle,
   embedded = false,
-}: React.PropsWithChildren<{ title: string; subtitle?: string; embedded?: boolean }>) {
-  const { colors, user, theme, setTheme } = useApp();
+  showBack = true,
+  onBack,
+  backDisabled = false,
+  backLabel = "Back",
+  backFallback,
+}: React.PropsWithChildren<{ title: string; subtitle?: string; embedded?: boolean; showBack?: boolean; onBack?: () => void; backDisabled?: boolean; backLabel?: string; backFallback?: Href }>) {
+  const { colors, user, verified, theme, setTheme } = useApp();
+  const fallback = backFallback ?? (verified && user ? user.role === "residents" ? "/resident/home" : "/camp/overview" : "/welcome");
   return (
     <SafeAreaView
       edges={embedded ? [] : ["top", "left", "right"]}
@@ -99,18 +106,18 @@ export function Screen({
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.page}
-          keyboardShouldPersistTaps="handled"
-        >
-          {!embedded && <View style={styles.header}>
-            {user?.role === "residents" ? <ResidentMenuButton theme={theme} /> : <Feather name="shield" size={25} color={colors.primary} />}
-            <View style={styles.flex}>
-              <Copy title>{title}</Copy>
-              {subtitle && <Copy muted>{subtitle}</Copy>}
+        {!embedded && <View style={[styles.headerPanel, { borderBottomColor: colors.border }]}>
+          <View style={styles.header}>
+            {showBack && <BackButton theme={theme} onPress={onBack} fallback={fallback} disabled={backDisabled} label={backLabel} />}
+            <View style={styles.headerActions}>
+              {user?.role === "residents" && <ResidentMenuButton theme={theme} />}
+              <Pressable accessibilityRole="button" accessibilityLabel="Toggle color theme" onPress={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }} style={[styles.headerTheme, { borderColor: colors.border }]}><Feather name={theme === "dark" ? "sun" : "moon"} size={19} color={colors.text} /></Pressable>
             </View>
-            {user?.role === "residents" && <Pressable accessibilityRole="button" accessibilityLabel="Toggle color theme" onPress={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }} style={[styles.headerTheme, { borderColor: colors.border }]}><Feather name={theme === "dark" ? "sun" : "moon"} size={19} color={colors.text} /></Pressable>}
-          </View>}
+          </View>
+          <Text accessibilityRole="header" style={[styles.screenTitle, { color: colors.text }]}>{title}</Text>
+          {subtitle && <Text style={[styles.screenSubtitle, { color: colors.muted }]}>{subtitle}</Text>}
+        </View>}
+        <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
           <SessionNotices />
           {children}
         </ScrollView>
@@ -380,7 +387,11 @@ export function Choices<T extends string>({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   page: { padding: 18, gap: 14, paddingBottom: 36, width: "100%", maxWidth: 640, alignSelf: "center" },
-  headerTheme: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  headerPanel: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 14, gap: 7, borderBottomWidth: 1, width: "100%", maxWidth: 640, alignSelf: "center" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8, marginLeft: "auto" },
+  screenTitle: { fontSize: 23, lineHeight: 29, fontWeight: "700", letterSpacing: -0.5 },
+  screenSubtitle: { fontSize: 13, lineHeight: 19 },
+  headerTheme: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",

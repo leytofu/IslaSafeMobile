@@ -10,8 +10,9 @@ import {
   Marker,
   TransformRequestManager,
 } from "@maplibre/maplibre-react-native";
-import { Button, Copy, Loading, Notice } from "./ui";
-import { captureLocation } from "../lib/location";
+import { Button, Loading, Notice } from "./ui";
+import { useDeviceLocation } from "../state/DeviceLocation";
+import { DeviceLocationNotice } from "./DeviceLocationNotice";
 import { errorMessage } from "../lib/api";
 import type { IslandMapProps } from "../lib/evacuationCenters";
 import { basemaps, rasterStyle, type BasemapKey } from "../lib/basemaps";
@@ -26,10 +27,12 @@ export default function IslandMap({ centers, selectedCenterId, onSelectCenter, c
   const mapStyle = useMemo(() => rasterStyle(basemap), [basemap]);
   const camera = useRef<CameraRef>(null);
   const [ready, setReady] = useState(false);
-  const [coordinate, setCoordinate] = useState<LngLat | null>(null);
-  const [capturedAt, setCapturedAt] = useState("");
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const location = useDeviceLocation();
+  const coordinate: LngLat | null = location.position ? [location.position.coords.longitude, location.position.coords.latitude] : null;
+  const centered = useRef(false);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const busy = location.status === "requesting" || location.status === "locating";
   const [generation, setGeneration] = useState(0);
   useEffect(() => {
     let mounted = true;
@@ -42,30 +45,19 @@ export default function IslandMap({ centers, selectedCenterId, onSelectCenter, c
           "IslaSafe-Capstone/1.0 (ph.islasafe.mobile; local Android demonstration)",
       });
       if (mounted) setReady(true);
-    })().catch((e) => setError(errorMessage(e)));
+    })().catch((e) => { if (mounted) setError(errorMessage(e)); });
     return () => {
       mounted = false;
     };
   }, []);
-  async function recenter() {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const position = await captureLocation();
-      const next: LngLat = [
-        position.coords.longitude,
-        position.coords.latitude,
-      ];
-      setCoordinate(next);
-      setCapturedAt(new Date(position.timestamp).toLocaleTimeString());
-      camera.current?.easeTo({ center: next, zoom: 15, duration: 350 });
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
+  useEffect(() => {
+    if (!location.position) { centered.current = false; return; }
+    if (mapLoaded && camera.current && !centered.current) {
+      camera.current.easeTo({ center: [location.position.coords.longitude, location.position.coords.latitude], zoom: 15, duration: 350 });
+      centered.current = true;
     }
-  }
+  }, [mapLoaded, location.position]);
+  function recenter() { centered.current = false; location.refresh(); }
   async function adjustZoom(amount: number) {
     if (!map.current || busy) return;
     try {
@@ -84,6 +76,7 @@ export default function IslandMap({ centers, selectedCenterId, onSelectCenter, c
           mapStyle={mapStyle}
           attribution={false}
           logo={false}
+          onDidFinishLoadingMap={() => setMapLoaded(true)}
           onDidFailLoadingMap={() =>
             setError(
               "Map failed to load. Check connectivity; reference maps remain available offline.",
@@ -92,7 +85,7 @@ export default function IslandMap({ centers, selectedCenterId, onSelectCenter, c
         >
           <Camera
             ref={camera}
-            initialViewState={{ center: municipality, zoom: 11 }}
+            initialViewState={{ center: coordinate ?? municipality, zoom: coordinate ? 15 : 11 }}
           />
           {centers.map((center) => (
             <Marker
@@ -116,7 +109,7 @@ export default function IslandMap({ centers, selectedCenterId, onSelectCenter, c
           {coordinate && (
             <Marker id="current-location" lngLat={coordinate}>
               <View
-                accessibilityLabel="Your captured current location"
+                accessibilityLabel="Your current location"
                 style={styles.marker}
               />
             </Marker>
@@ -159,15 +152,12 @@ export default function IslandMap({ centers, selectedCenterId, onSelectCenter, c
         title="Reload map"
         onPress={() => {
           setError("");
+          setMapLoaded(false);
+          centered.current = false;
           setGeneration((value) => value + 1);
         }}
       />}
-      <Copy muted>
-        {coordinate
-          ? `GPS captured at ${capturedAt}: ${coordinate[1].toFixed(5)}, ${coordinate[0].toFixed(5)}. Tap Locate me to update.`
-          : "Tap Locate me to show your current position on this map."}
-      </Copy>
-      <Copy muted>Using this map does not share your GPS location with Admin.</Copy>
+      <DeviceLocationNotice />
       <Button
         secondary
         title={basemaps[basemap].attribution}

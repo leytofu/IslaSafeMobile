@@ -17,7 +17,7 @@ function load(current: Permission, request: () => Promise<Permission>) {
   } });
   return { request: exports.requestLocationPermission!, reads: () => reads };
 }
-test("startup requests permission without obtaining or sharing GPS coordinates", async () => {
+test("the permission helper requests permission without reading GPS itself", async () => {
   let prompts = 0;
   const permission = load({ granted: false, canAskAgain: true }, async () => { prompts++; return { granted: true, canAskAgain: true }; });
   const first = permission.request();

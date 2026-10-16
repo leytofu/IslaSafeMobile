@@ -1,6 +1,9 @@
 import { Platform } from "react-native";
+import { isRunningInExpoGo } from "expo";
 function image(name: string, preview: number) {
-  return Platform.OS === "android" ? { uri: name } : preview;
+  // Only our custom Android build contains the expo-asset plugin's drawables.
+  // Expo Go must resolve the require() asset through Metro instead.
+  return Platform.OS === "android" && !isRunningInExpoGo() ? { uri: name } : preview;
 }
 export const hazards = [
   {

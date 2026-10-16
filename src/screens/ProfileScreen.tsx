@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { router } from "expo-router";
+import { Platform } from "react-native";
 import {
   Button,
   Card,
@@ -14,6 +15,8 @@ import { useApp } from "../state/AppState";
 import { errorMessage } from "../lib/api";
 import { ReferenceSettings } from "../components/ResidentReferenceViews";
 import { BarangayField } from "../components/BarangayField";
+import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
+import { avatarProfileForm } from "../lib/profile-photo";
 export default function ProfileScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     user,
@@ -60,6 +63,9 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
   return (
     <Screen
       embedded={embedded}
+      backDisabled={busy}
+      onBack={editProfile || showOffline ? () => { setEditProfile(false); setShowOffline(false); } : undefined}
+      backLabel={editProfile || showOffline ? "Back to settings" : "Back"}
       title={user?.role === "residents" ? "Settings" : "Your profile"}
       subtitle={
         user?.role === "campmanager"
@@ -69,6 +75,9 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
     >
       {!!error && <Notice error text={error} />}
       {!!message && <Notice text={message} />}
+      {user && !showOffline && <ProfilePhotoEditor key={user.id} user={user} theme={theme} disabled={busy} canSave={verified} onVerify={() => { void run(refresh); }}
+        onBusyChange={(value) => { lock.current = value; setBusy(value); }}
+        onSave={async (photo) => { await updateProfile(await avatarProfileForm(user, photo, Platform.OS)); }} />}
       {user?.role === "residents" && !editProfile && !showOffline && <ReferenceSettings theme={theme} user={user}
         onToggleTheme={() => { void run(() => setTheme(theme === "dark" ? "light" : "dark")); }}
         onEditProfile={() => setEditProfile((current) => !current)}

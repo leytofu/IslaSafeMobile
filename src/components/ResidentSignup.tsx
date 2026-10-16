@@ -106,7 +106,7 @@ export function ResidentSignup({ step, busy, error, name, email, password, confi
             <Pressable accessibilityRole="button" accessibilityLabel="Already have an account? Log in" disabled={busy} onPress={() => { Keyboard.dismiss(); onLogin(); }} style={styles.login}><Text style={[styles.loginText, { color: colors.muted }]}>Already have an account? <Text style={[styles.linkText, { color: accent }]}>Log in</Text></Text></Pressable>
           </View>
         </ScrollView>
-        <View style={[styles.footer, { borderTopColor: colors.border }]}><Pressable accessibilityRole="button" accessibilityLabel="Emergency SOS. Continue without signing in" onPress={() => { Keyboard.dismiss(); router.push("/guest-sos"); }} style={styles.sos}><Feather name="alert-circle" size={17} color={theme === "dark" ? "#ff9dad" : colors.danger} /><Text style={[styles.sosText, { color: theme === "dark" ? "#ffb7c4" : colors.danger }]}>Emergency SOS</Text><Text style={[styles.guest, { color: colors.muted }]}>No account needed</Text></Pressable></View>
+        <View style={[styles.footer, { borderTopColor: colors.border }]}><Pressable accessibilityRole="button" accessibilityLabel="Emergency SOS. Continue without signing in" onPress={() => { Keyboard.dismiss(); router.push({ pathname: "/guest-sos", params: { prepare: "1" } }); }} style={styles.sos}><Feather name="alert-circle" size={17} color={theme === "dark" ? "#ff9dad" : colors.danger} /><Text style={[styles.sosText, { color: theme === "dark" ? "#ffb7c4" : colors.danger }]}>Emergency SOS</Text><Text style={[styles.guest, { color: colors.muted }]}>No account needed</Text></Pressable></View>
       </View>
     </KeyboardAvoidingView>
   </SafeAreaView>;

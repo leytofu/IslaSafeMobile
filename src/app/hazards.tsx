@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { isRunningInExpoGo } from "expo";
 import { Image, Modal, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 import { Button, Card, Choices, Copy, Screen } from "../components/ui";
 import { hazards } from "../data/hazards";
 import { useApp } from "../state/AppState";
@@ -12,15 +12,8 @@ export default function Hazards() {
   return (
     <Screen
       title="Hazard reference maps"
-      subtitle="Original Urban Exposure maps • Available offline"
+      subtitle={isRunningInExpoGo() ? 'Original Urban Exposure maps • Load while connected' : 'Original Urban Exposure maps • Available offline'}
     >
-      <Button
-        secondary
-        title="Back"
-        onPress={() =>
-          router.canGoBack() ? router.back() : router.replace("/")
-        }
-      />
       <Copy muted>
         These supplied images retain their original legends. Their geographic
         alignment and currency are not verified. They are reference documents

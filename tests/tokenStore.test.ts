@@ -22,6 +22,12 @@ test("remembered token survives a new app process and logout removes it", async 
   assert.equal(await phone.launch().readToken(), null);
 });
 
+test("login persists its Sanctum token across app restarts by default", async () => {
+  const phone = device();
+  await phone.launch().saveToken("sanctum-token");
+  assert.equal(await phone.launch().readToken(), "sanctum-token");
+});
+
 test("unchecked login clears an older remembered token and lasts only in memory", async () => {
   const phone = device("previous-token");
   const running = phone.launch();

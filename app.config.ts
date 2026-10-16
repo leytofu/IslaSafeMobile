@@ -27,6 +27,11 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-secure-store",
     "expo-font",
+    ["expo-image-picker", {
+      photosPermission: "Choose a photo for your IslaSafe profile.",
+      cameraPermission: "Take a photo for your IslaSafe profile.",
+      microphonePermission: false,
+    }],
     [
       "expo-splash-screen",
       {
@@ -41,7 +46,7 @@ const config: ExpoConfig = {
       "expo-location",
       {
         locationWhenInUsePermission:
-          "IslaSafe uses your location to place you on the map and include coordinates in an SOS you choose to send.",
+          "IslaSafe shows your current position on the map while the app is open. Coordinates are shared only when you choose to submit an SOS.",
       },
     ],
     "@maplibre/maplibre-react-native",
