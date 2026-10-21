@@ -1,6 +1,13 @@
 import { create, isAxiosError } from "axios";
+import Constants from "expo-constants";
+import { NativeModules } from "react-native";
+import { resolveApiBaseUrl } from "./api-address";
+
+const developmentHost = __DEV__
+  ? Constants.expoConfig?.hostUri ?? NativeModules.SourceCode?.scriptURL
+  : undefined;
 export const api = create({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.2.2:8000/api",
+  baseURL: resolveApiBaseUrl(process.env.EXPO_PUBLIC_API_BASE_URL, developmentHost),
   timeout: 20000,
   headers: { Accept: "application/json" },
 });

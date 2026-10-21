@@ -1,2 +1,2 @@
-import { CampOverview } from "../../components/CampOverview";
+import { CampOverview } from "../../../../components/CampOverview";
 export default function Center() { return <CampOverview centerOnly />; }

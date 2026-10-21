@@ -13,6 +13,7 @@ export interface ResidentDashboardProps {
   showPreviewNavigation?: boolean;
   statusContent?: ReactNode;
   menuControl?: ReactNode;
+  headerContent?: ReactNode;
   mapContent?: ReactNode;
   onSos?: () => void; onMap?: () => void; onGuides?: () => void; onHazards?: () => void;
 }
@@ -20,7 +21,7 @@ export interface ResidentDashboardProps {
 /** Presentation only: fixture cards never request data or dispatch emergencies. */
 export function ResidentDashboard({
   theme, onToggleTheme, name = sample.name, barangay = sample.barangay,
-  showPreviewNavigation = false, statusContent, menuControl, mapContent, onSos, onMap, onGuides, onHazards,
+  showPreviewNavigation = false, statusContent, menuControl, headerContent, mapContent, onSos, onMap, onGuides, onHazards,
 }: ResidentDashboardProps) {
   const colors = dashboardPalettes[theme];
   const { width, fontScale } = useWindowDimensions();
@@ -33,9 +34,10 @@ export function ResidentDashboard({
   ];
   return <SafeAreaView edges={["top", "left", "right"]} style={[styles.root, { backgroundColor: colors.bg }]}>
     <StatusBar style={theme === "dark" ? "light" : "dark"} />
+    {headerContent}
     <ScrollView testID="resident-dashboard-scroll" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
       <View style={styles.page}>
-        <View style={styles.header}>
+        {!headerContent && <View style={styles.header}>
           <View style={styles.greetingGroup}>
             {menuControl || <View style={[styles.brand, { backgroundColor: colors.tint }]}><Feather name="menu" size={23} color={colors.accent} /></View>}
             <View style={styles.greetingCopy}><Text style={[styles.greeting, { color: colors.muted }]}>Your community</Text><Text accessibilityRole="header" numberOfLines={1} style={[styles.name, { color: colors.text }]}>Dashboard</Text></View>
@@ -43,7 +45,7 @@ export function ResidentDashboard({
           <View style={styles.headerActions}>
             <IconButton colors={colors} icon={theme === "dark" ? "sun" : "moon"} label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} onPress={onToggleTheme} />
           </View>
-        </View>
+        </View>}
         <View style={styles.location}><Feather name="map-pin" color={colors.subtle} size={12} /><Text style={[styles.locationText, { color: colors.muted }]}>{sample.location}</Text></View>
         <View style={[styles.previewNote, { borderColor: colors.border }]}><View style={[styles.previewDot, { backgroundColor: colors.accent }]} /><Text style={[styles.previewText, { color: colors.muted }]}>Design preview · Weather, advisories & center details are sample data</Text></View>
         {statusContent}

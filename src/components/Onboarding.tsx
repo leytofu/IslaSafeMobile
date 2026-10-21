@@ -1,312 +1,166 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, AppState, Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import Animated, { cancelAnimation, Easing, interpolate, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import Animated, { FadeIn, FadeInDown, ReduceMotion } from "react-native-reanimated";
 import { useApp } from "../state/AppState";
 import type { Role } from "../lib/contracts";
 import { authPalettes } from "../theme/colors";
 
-const DURATION = 3300;
-function useOnboardingStyles() {
-  const { theme } = useApp();
-  const navy = authPalettes[theme];
-  const styles = useMemo(() => createStyles(navy), [navy]);
-  return { navy, styles };
-}
-const ease = Easing.bezier(0.16, 0.84, 0.44, 1);
-
-function phase(time: number, start: number, end: number) {
-  "worklet";
-  const value = interpolate(time, [start, end], [0, 1], "clamp");
-  return value * value * (3 - 2 * value);
-}
-
-function BrandLetter({ letter, index, clock, revealed }: { letter: string; index: number; clock: SharedValue<number>; revealed: boolean }) {
-  const { styles } = useOnboardingStyles();
-  const style = useAnimatedStyle(() => {
-    const reveal = phase(clock.get(), 100 + index * 40, 600 + index * 40);
-    const morph = phase(clock.get(), 1050 + index * 25, 1400 + index * 25);
-    const returnToBrand = phase(clock.get(), 1650, 2000);
-    return {
-      opacity: reveal * (1 - morph + morph * returnToBrand),
-      transform: [{ translateY: (1 - reveal) * 12 - morph * (1 - returnToBrand) * 10 }, { scaleX: 1 - morph * (1 - returnToBrand) * 0.55 }],
-    };
-  });
-  return <Animated.Text accessible={false} allowFontScaling={false} style={[styles.brandTitle, revealed ? styles.motionReady : style]}>{letter}</Animated.Text>;
-}
-
-function YearDigit({ digit, index, clock }: { digit: string; index: number; clock: SharedValue<number> }) {
-  const { styles } = useOnboardingStyles();
-  const motion = useAnimatedStyle(() => {
-    const reveal = phase(clock.get(), 1150 + index * 55, 1550 + index * 55);
-    return { opacity: reveal, transform: [{ translateY: 14 * (1 - reveal) }, { scale: 0.5 + 0.5 * reveal }, { rotate: `${7 * (1 - reveal)}deg` }] };
-  });
-  return <Animated.Text allowFontScaling={false} style={[styles.yearDigit, motion]}>{digit}</Animated.Text>;
-}
-
-function RoleCard({ role, title, detail, icon, clock, delay, selected, disabled, reduceMotion, revealed, onSelect }: {
-  role: Role; title: string; detail: string; icon: "user" | "home"; clock: SharedValue<number>; delay: number;
-  selected: boolean; disabled: boolean; reduceMotion: boolean; revealed: boolean; onSelect: (role: Role) => void;
-}) {
-  const { navy, styles } = useOnboardingStyles();
-  const pressed = useSharedValue(1);
-  const style = useAnimatedStyle(() => {
-    const reveal = phase(clock.get(), delay, delay + 450);
-    return { opacity: reveal, transform: [{ translateY: (1 - reveal) * 22 }, { scale: pressed.get() }] };
-  });
-  const press = (scale: number) => {
-    pressed.set(withTiming(scale, { duration: reduceMotion ? 0 : 130, reduceMotion: ReduceMotion.System }));
-  };
-  useEffect(() => () => cancelAnimation(pressed), [pressed]);
-  return (
-    <Animated.View style={revealed ? styles.motionReady : style}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${title}. ${detail}`}
-        accessibilityHint="Opens the authentication form for this role"
-        accessibilityState={{ selected, disabled }}
-        disabled={disabled}
-        onPressIn={() => press(0.975)}
-        onPressOut={() => press(1)}
-        onPress={() => onSelect(role)}
-        style={[styles.roleCard, selected && styles.roleCardSelected]}
-      >
-        <View style={[styles.roleIcon, selected && styles.roleIconSelected]}><Feather name={icon} size={23} color={navy.accent} /></View>
-        <View style={styles.flex}>
-          <Text style={styles.roleTitle}>{title}</Text>
-          <Text style={styles.roleDetail}>{detail}</Text>
-          <Text style={styles.roleAccess}>{role === "residents" ? "SIGN IN OR CREATE AN ACCOUNT" : "SIGN IN WITH YOUR ASSIGNED ACCOUNT"}</Text>
-        </View>
-        <Feather name={selected ? "check-circle" : "arrow-right"} size={20} color={selected ? navy.accent : navy.muted} />
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-/** The logo and role layout share one mounted surface and one UI-thread clock. */
 export function Onboarding({ playIntro }: { playIntro: boolean }) {
-  const { navy, styles } = useOnboardingStyles();
-  const { completeIntro, sessionMessage, online, refresh } = useApp();
-  const { height } = useWindowDimensions();
-  const initialReducedMotion = useReducedMotion();
-  const [reduceMotion, setReduceMotion] = useState(initialReducedMotion);
-  const [selectable, setSelectable] = useState(!playIntro || initialReducedMotion);
+  const { theme, completeIntro, sessionMessage, online, refresh } = useApp();
+  const colors = authPalettes[theme];
+  const styles = useMemo(() => createStyles(colors, theme === "dark"), [colors, theme]);
+  const { height, fontScale } = useWindowDimensions();
+  const compact = height < 900 || fontScale > 1.2;
   const [selected, setSelected] = useState<Role | null>(null);
   const [retrying, setRetrying] = useState(false);
-  const [shouldPlay] = useState(() => playIntro && !initialReducedMotion);
-  const clock = useSharedValue(shouldPlay ? 0 : DURATION);
-  const exit = useSharedValue(0);
-  const selecting = useRef(false);
-  const finished = useRef(!shouldPlay);
-  const mounted = useRef(true);
-  const navigated = useRef(false);
-
-  const finish = useCallback(() => {
-    if (!mounted.current) return;
-    finished.current = true;
-    setSelectable(true);
-    completeIntro();
-  }, [completeIntro]);
-
-  const settle = useCallback(() => {
-    cancelAnimation(clock);
-    clock.set(DURATION);
-    finish();
-  }, [clock, finish]);
+  const navigating = useRef(false);
+  const mounted = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
-    if (shouldPlay) {
-      // Development Strict Mode restarts effects. Begin from the first frame
-      // instead of continuing from a cancelled or settled animation clock.
-      clock.set(0);
-      clock.set(withTiming(DURATION, { duration: DURATION, easing: Easing.linear, reduceMotion: ReduceMotion.System }, (done) => {
-        if (done) scheduleOnRN(finish);
-      }));
-    } else {
-      finish();
-    }
-    const deadline = setTimeout(finish, DURATION + 700);
-    const motion = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
-      setReduceMotion(enabled);
-      if (enabled) settle();
-    });
-    const screenReader = AccessibilityInfo.addEventListener("screenReaderChanged", (enabled) => {
-      if (enabled) settle();
-    });
-    // React Native Web reports true unconditionally here; use its reduced-motion
-    // preference instead, while retaining native screen-reader handling.
-    if (Platform.OS !== "web") void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
-      if (mounted.current && enabled) settle();
-    }).catch(() => {});
-    const lifecycle = AppState.addEventListener("change", (state) => {
-      // Finish when interrupted; resuming never restarts or replays the intro.
-      if (state !== "active" && !finished.current) settle();
-      if (state !== "active" && selecting.current) {
-        cancelAnimation(exit);
-        exit.set(0);
-        selecting.current = false;
-        setSelected(null);
-      }
-    });
-    return () => {
-      mounted.current = false;
-      clearTimeout(deadline);
-      cancelAnimation(clock);
-      cancelAnimation(exit);
-      motion.remove();
-      screenReader.remove();
-      lifecycle.remove();
-    };
-  }, [clock, exit, finish, settle, shouldPlay]);
+    // The welcome screen is usable immediately; animation never gates navigation.
+    completeIntro();
+    return () => { mounted.current = false; };
+  }, [completeIntro]);
 
   useFocusEffect(useCallback(() => {
-    selecting.current = false;
-    navigated.current = false;
+    navigating.current = false;
     setSelected(null);
-    exit.set(0);
-    return () => {
-      cancelAnimation(exit);
-      if (mounted.current && !finished.current) settle();
-    };
-  }, [exit, settle]));
+  }, []));
 
-  const brandMotion = useAnimatedStyle(() => {
-    const dock = phase(clock.get(), 1850, 2550);
-    const reveal = phase(clock.get(), 80, 650);
-    return {
-      opacity: reveal,
-      transform: [{ translateY: Math.max(100, height * 0.36 - 125) * (1 - dock) }, { scale: 1.3 - dock * 0.3 }],
-    };
-  });
-  const yearMotion = useAnimatedStyle(() => ({
-    opacity: phase(clock.get(), 1150, 1500) * (1 - phase(clock.get(), 1650, 1900)),
-    transform: [{ translateY: 14 * (1 - phase(clock.get(), 1150, 1650)) }, { scale: 0.75 + phase(clock.get(), 1150, 1650) * 0.25 }],
-  }));
-  const lineMotion = useAnimatedStyle(() => ({ transform: [{ scaleX: phase(clock.get(), 1100, 1800) }] }));
-  const headingMotion = useAnimatedStyle(() => {
-    const reveal = phase(clock.get(), 2350, 2800);
-    return { opacity: reveal, transform: [{ translateY: 18 * (1 - reveal) }] };
-  });
-  const subtitleMotion = useAnimatedStyle(() => {
-    const reveal = phase(clock.get(), 2450, 2900);
-    return { opacity: reveal, transform: [{ translateY: 14 * (1 - reveal) }] };
-  });
-  const surfaceMotion = useAnimatedStyle(() => ({ opacity: 1 - exit.get(), transform: [{ translateY: -8 * exit.get() }] }));
-
-  const openAuth = useCallback((role: Role) => {
-    if (!mounted.current || navigated.current) return;
-    navigated.current = true;
-    router.push({ pathname: "/auth", params: { role } });
-  }, []);
-  useEffect(() => {
-    if (!selected) return;
-    const deadline = setTimeout(() => openAuth(selected), 350);
-    return () => clearTimeout(deadline);
-  }, [selected, openAuth]);
-  const select = (role: Role) => {
-    if (selecting.current || !selectable) return;
-    selecting.current = true;
+  function select(role: Role) {
+    if (navigating.current) return;
+    navigating.current = true;
     setSelected(role);
-    if (reduceMotion) openAuth(role);
-    else exit.set(withTiming(1, { duration: 220, easing: ease }, (done) => {
-      if (done) scheduleOnRN(openAuth, role);
-    }));
-  };
-  const emergency = () => {
-    settle();
-    router.push({ pathname: "/guest-sos", params: { prepare: "1" } });
-  };
+    router.push({ pathname: "/auth", params: { role } });
+  }
 
-  return (
-    <SafeAreaView style={styles.root}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <View style={styles.glowOne} /><View style={styles.glowTwo} />
-      </View>
-      <View style={styles.topBar}>
-        <Text style={styles.eyebrow}>PITOGO ISLAND · BOHOL</Text>
-        {!selectable && <Pressable accessibilityRole="button" accessibilityLabel="Skip intro" onPress={settle} style={styles.skip}><Text style={styles.skipText}>Skip intro</Text><Feather name="chevrons-right" size={16} color={navy.muted} /></Pressable>}
-      </View>
-      <ScrollView contentContainerStyle={styles.scroll} scrollEnabled={selectable}>
-        <Animated.View style={[styles.content, selectable && !selected ? styles.motionReady : surfaceMotion]}>
-          <Animated.View style={[styles.brand, selectable ? styles.motionReady : brandMotion]} accessible accessibilityLabel="IslaSafe. Pitogo Island Emergency System">
-            <View style={styles.logoFrame}><Image source={require("../../assets/app-logo.png")} style={styles.logo} resizeMode="contain" accessibilityLabel="Municipality of President Carlos P. Garcia seal" /></View>
-            <View style={styles.titleStage} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <View style={styles.letters}>{"IslaSafe".split("").map((letter, index) => <BrandLetter key={`${letter}-${index}`} letter={letter} index={index} clock={clock} revealed={selectable} />)}</View>
-              <Animated.View style={[styles.year, selectable ? { opacity: 0 } : yearMotion]}>{new Date().getFullYear().toString().split("").map((digit, index) => <YearDigit key={index} digit={digit} index={index} clock={clock} />)}</Animated.View>
-            </View>
-            <View style={styles.lineTrack}><Animated.View style={[styles.lineFill, selectable ? { transform: [{ scaleX: 1 }] } : lineMotion]} /></View>
-            <Text style={styles.brandTag}>CONNECTED. PREPARED. PROTECTED.</Text>
-          </Animated.View>
-          <View accessibilityElementsHidden={!selectable} importantForAccessibility={selectable ? "auto" : "no-hide-descendants"} pointerEvents={selectable ? "auto" : "none"}>
-            <Animated.Text accessibilityRole="header" style={[styles.heading, selectable ? styles.motionReady : headingMotion]}>Welcome to IslaSafe</Animated.Text>
-            <Animated.Text style={[styles.subtitle, selectable ? styles.motionReady : subtitleMotion]}>Your community. Your safety.{"\n"}Choose how you’ll connect.</Animated.Text>
-            <View style={styles.cards}>
-              <RoleCard role="residents" title="Resident" detail="Stay informed, find safety, and request help." icon="user" clock={clock} delay={2650} selected={selected === "residents"} disabled={!selectable || Boolean(selected)} reduceMotion={reduceMotion} revealed={selectable} onSelect={select} />
-              <RoleCard role="campmanager" title="Camp Manager" detail="Coordinate your center and support evacuees." icon="home" clock={clock} delay={2800} selected={selected === "campmanager"} disabled={!selectable || Boolean(selected)} reduceMotion={reduceMotion} revealed={selectable} onSelect={select} />
-            </View>
-            {!!sessionMessage && <Text accessibilityLiveRegion="polite" style={styles.notice}>{sessionMessage}</Text>}
-            {!!sessionMessage && <Pressable accessibilityRole="button" disabled={retrying} onPress={() => { setRetrying(true); void refresh().finally(() => { if (mounted.current) setRetrying(false); }); }} style={styles.retry}><Text style={styles.link}>{retrying ? "Verifying session…" : "Retry session verification"}</Text></Pressable>}
+  return <SafeAreaView style={styles.root}>
+    <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <View style={styles.viewport}>
+        <Animated.View entering={playIntro ? FadeIn.duration(450).reduceMotion(ReduceMotion.System) : undefined} style={styles.header}>
+          <View style={styles.brand}>
+            <View style={styles.logoFrame}><Image source={require("../../assets/reference-brand.png")} style={styles.logo} resizeMode="contain" accessibilityLabel="Municipality of President Carlos P. Garcia seal" /></View>
+            <View style={styles.brandCopy}><Text style={styles.brandName}>IslaSafe<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandLocation}>Pitogo Island, Bohol</Text></View>
           </View>
+          <View style={styles.communityMark} accessible accessibilityLabel="Community safety"><Feather name="shield" size={19} color={colors.accent} /></View>
         </Animated.View>
-      </ScrollView>
-      <View style={styles.emergencyArea}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Emergency SOS. Continue without signing in" onPress={emergency} style={({ pressed }) => [styles.emergencyButton, pressed && { opacity: 0.8 }]}>
-          <Feather name="alert-circle" size={21} color={navy.error} /><Text style={styles.emergencyText}>Emergency SOS</Text><Feather name="arrow-right" size={18} color={navy.error} />
-        </Pressable>
-        <Text style={styles.emergencyHint}>{online ? "No account needed to request help" : "Offline · Save a request and review it when connected"}</Text>
-        <View style={styles.resources}>
-          <Pressable accessibilityRole="button" onPress={() => { settle(); router.push("/guides"); }} style={styles.resourceLink}><Text style={styles.link}>Preparedness guides</Text></Pressable>
-          <Pressable accessibilityRole="button" onPress={() => { settle(); router.push("/hazards"); }} style={styles.resourceLink}><Text style={styles.link}>Hazard references</Text></Pressable>
+
+        <View style={[styles.hero, compact && styles.heroCompact]}>
+          <View pointerEvents="none" style={styles.heroAura} />
+          <Animated.View entering={playIntro ? FadeInDown.duration(420).reduceMotion(ReduceMotion.System) : undefined} style={styles.eyebrowRow}><View style={styles.eyebrowLine} /><Text style={styles.eyebrow}>YOUR ISLAND. YOUR COMMUNITY.</Text></Animated.View>
+          <View accessible accessibilityRole="header" accessibilityLabel="Prepared today. Safer together.">
+            <Animated.Text entering={playIntro ? FadeInDown.delay(90).duration(620).reduceMotion(ReduceMotion.System) : undefined} style={[styles.heading, compact && styles.headingCompact]}>Prepared today.</Animated.Text>
+            <Animated.Text entering={playIntro ? FadeInDown.delay(210).duration(620).reduceMotion(ReduceMotion.System) : undefined} style={[styles.heading, compact && styles.headingCompact, styles.headingAccent]}>Safer together.</Animated.Text>
+          </View>
+          <Animated.Text entering={playIntro ? FadeInDown.delay(320).duration(540).reduceMotion(ReduceMotion.System) : undefined} style={styles.description}>Stay informed, find a safe place, and get help when it matters most.</Animated.Text>
+          <Animated.View entering={playIntro ? FadeIn.delay(430).duration(480).reduceMotion(ReduceMotion.System) : undefined} style={styles.features}>
+            <View style={styles.feature}><Feather name="bell" size={14} color={colors.accent} /><Text style={styles.featureText}>Local advisories</Text></View>
+            <View style={styles.feature}><Feather name="map-pin" size={14} color={colors.accent} /><Text style={styles.featureText}>Evacuation maps</Text></View>
+          </Animated.View>
+        </View>
+
+        <View style={styles.roles}>
+          <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>Get started</Text><Text style={styles.sectionHint}>Choose your role</Text></View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Resident. Sign in or create an account" accessibilityHint="Opens resident sign in" accessibilityState={{ disabled: selected !== null, busy: selected === "residents" }} disabled={selected !== null} onPress={() => select("residents")} style={({ pressed }) => [styles.residentCard, pressed && styles.pressed]}>
+            <View style={styles.residentTop}>
+              <View style={styles.residentIcon}><Feather name="user" size={23} color="#ffffff" /></View>
+              <View style={styles.flex}><Text style={styles.residentTitle}>I&apos;m a Resident</Text><Text style={styles.residentDetail}>Stay connected. Keep your family ready.</Text></View>
+            </View>
+            <View style={styles.residentAction}><Text style={styles.residentActionText}>Sign in or create an account</Text><View style={styles.residentArrow}>{selected === "residents" ? <ActivityIndicator size="small" color="#fff" /> : <Feather name="arrow-up-right" size={20} color="#ffffff" />}</View></View>
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Camp Manager. Sign in with your assigned account" accessibilityHint="Opens camp manager sign in" accessibilityState={{ disabled: selected !== null, busy: selected === "campmanager" }} disabled={selected !== null} onPress={() => select("campmanager")} style={({ pressed }) => [styles.managerCard, pressed && styles.pressed]}>
+            <View style={styles.managerIcon}><Feather name="home" size={22} color={colors.accent} /></View>
+            <View style={styles.flex}><Text style={styles.managerTitle}>Camp Manager</Text><Text style={styles.managerDetail}>Sign in with your assigned account</Text></View>
+            {selected === "campmanager" ? <ActivityIndicator size="small" color={colors.accent} /> : <Feather name="arrow-right" size={19} color={colors.muted} />}
+          </Pressable>
+        </View>
+
+        {!!sessionMessage && <View style={styles.notice}>
+          <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{sessionMessage}</Text>
+          <Pressable accessibilityRole="button" disabled={retrying} onPress={() => { setRetrying(true); void refresh().finally(() => { if (mounted.current) setRetrying(false); }); }} style={styles.retry}><Text style={styles.link}>{retrying ? "Verifying session..." : "Retry session verification"}</Text></Pressable>
+        </View>}
+
+        <View style={[styles.helpArea, compact && styles.helpAreaCompact]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Emergency SOS. Continue without signing in" onPress={() => { completeIntro(); router.push({ pathname: "/guest-sos", params: { prepare: "1" } }); }} style={({ pressed }) => [styles.emergencyButton, pressed && styles.pressed]}>
+            <View style={styles.emergencyIcon}><Feather name="alert-circle" size={23} color={colors.emergency} /></View>
+            <View style={styles.flex}><Text style={styles.emergencyText}>Need help now?</Text><Text style={styles.emergencyHint}>{online ? "Emergency SOS · No account needed" : "Offline · Prepare and save an SOS"}</Text></View>
+            <Feather name="arrow-right" size={19} color={colors.emergency} />
+          </Pressable>
+          <View style={styles.resources}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Guides. Safety guides and hazard references" accessibilityHint="Opens offline preparedness guides and hazard reference maps" onPress={() => { completeIntro(); router.push("/guides"); }} style={({ pressed }) => [styles.guidesCard, { backgroundColor: colors.card, borderColor: colors.border }, pressed && styles.pressed]}>
+              <View style={[styles.guidesIcon, { backgroundColor: colors.tint }]}><Feather name="book-open" size={19} color={colors.accent} /></View>
+              <View style={styles.flex}>
+                <View style={styles.guidesTitleRow}>
+                  <Text style={[styles.guidesTitle, { color: colors.text }]}>Guides</Text>
+                  <View style={[styles.offlinePill, { backgroundColor: colors.tint }]}><Feather name="download-cloud" size={9} color={colors.accent} /><Text style={[styles.offlinePillText, { color: colors.accent }]}>Offline</Text></View>
+                </View>
+                <Text style={[styles.guidesDetail, { color: colors.muted }]}>Safety guides &amp; hazard references</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.muted} />
+            </Pressable>
+          </View>
+          <View style={styles.footer}>
+            <Text style={styles.footerBrand}>© 2026 IslaSafe. All rights reserved.</Text>
+            <Text style={styles.footerTagline}>Developed by Four Sisters and a wedding.</Text>
+          </View>
         </View>
       </View>
-    </SafeAreaView>
-  );
+    </ScrollView>
+  </SafeAreaView>;
 }
 
-const createStyles = (navy: typeof authPalettes.dark) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: navy.bg },
-  motionReady: { opacity: 1, transform: [{ translateX: 0 }, { translateY: 0 }, { scale: 1 }, { scaleX: 1 }] },
-  flex: { flex: 1 },
-  glowOne: { position: "absolute", top: -100, left: -100, width: 380, height: 380, borderRadius: 200, backgroundColor: "#4338ca", opacity: 0.055 },
-  glowTwo: { position: "absolute", bottom: -80, right: -130, width: 360, height: 360, borderRadius: 200, backgroundColor: "#0e7490", opacity: 0.055 },
-  topBar: { minHeight: 48, paddingHorizontal: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  eyebrow: { fontSize: 10, fontWeight: "600", letterSpacing: 1.8, color: navy.muted },
-  skip: { minHeight: 48, flexDirection: "row", gap: 6, alignItems: "center", paddingLeft: 12 },
-  skipText: { fontSize: 13, color: navy.muted },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 20 },
-  content: { width: "100%", maxWidth: 480, alignSelf: "center" },
-  brand: { alignItems: "center", paddingTop: 14, paddingBottom: 30 },
-  logoFrame: { width: 84, height: 84, alignItems: "center", justifyContent: "center" },
-  logo: { width: 84, height: 84 },
-  titleStage: { height: 56, marginTop: 12, alignItems: "center", justifyContent: "center" },
-  letters: { flexDirection: "row" },
-  brandTitle: { color: navy.text, fontSize: 40, fontWeight: "700", letterSpacing: -2, lineHeight: 52 },
-  year: { position: "absolute", flexDirection: "row", gap: 3 },
-  yearDigit: { color: navy.text, fontSize: 40, fontWeight: "700" },
-  lineTrack: { height: 2, width: 120, backgroundColor: navy.border, marginTop: 10, marginBottom: 14, overflow: "hidden" },
-  lineFill: { width: "100%", height: "100%", backgroundColor: navy.focusBorder },
-  brandTag: { color: navy.muted, fontSize: 9, fontWeight: "600", letterSpacing: 1.6 },
-  heading: { color: navy.text, fontWeight: "700", fontSize: 26, textAlign: "center", letterSpacing: -0.7 },
-  subtitle: { color: navy.muted, fontSize: 14, lineHeight: 22, textAlign: "center", marginTop: 10 },
-  cards: { gap: 14, marginTop: 28 },
-  roleCard: { flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderRadius: 18, borderWidth: 1, borderColor: navy.border, backgroundColor: navy.card, minHeight: 120 },
-  roleCardSelected: { borderColor: navy.focusBorder, backgroundColor: navy.tint },
-  roleIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: navy.tint, alignItems: "center", justifyContent: "center" },
-  roleIconSelected: { backgroundColor: navy.badgeBorder },
-  roleTitle: { color: navy.text, fontSize: 18, fontWeight: "700" },
-  roleDetail: { color: navy.muted, fontSize: 13, lineHeight: 19, marginTop: 5 },
-  roleAccess: { color: navy.accent, fontSize: 9, fontWeight: "600", letterSpacing: 0.5, lineHeight: 14, marginTop: 10 },
-  notice: { color: navy.muted, lineHeight: 20, fontSize: 13, marginTop: 20 },
-  retry: { minHeight: 48, justifyContent: "center", alignItems: "center" },
-  link: { color: navy.accent, fontSize: 12, fontWeight: "600" },
-  emergencyArea: { paddingHorizontal: 24, paddingTop: 14, paddingBottom: 6, borderTopWidth: 1, borderTopColor: navy.border },
-  emergencyButton: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", minHeight: 52, borderWidth: 1, borderColor: navy.errorBorder, backgroundColor: navy.errorBg, borderRadius: 14 },
-  emergencyText: { color: navy.emergency, fontSize: 15, fontWeight: "700" },
-  emergencyHint: { color: navy.muted, fontSize: 11, textAlign: "center", marginTop: 9 },
-  resources: { flexDirection: "row", justifyContent: "center", gap: 18, flexWrap: "wrap" },
-  resourceLink: { minHeight: 44, justifyContent: "center" },
+const createStyles = (colors: typeof authPalettes.dark, dark: boolean) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  scroll: { flexGrow: 1 },
+  viewport: { width: "100%", maxWidth: 480, alignSelf: "center", flexGrow: 1, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 18 },
+  flex: { flex: 1, minWidth: 0 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  brand: { flexDirection: "row", alignItems: "center", gap: 11, flex: 1 },
+  logoFrame: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  logo: { width: 38, height: 38 },
+  brandCopy: { gap: 3 }, brandName: { fontSize: 23, fontWeight: "800", letterSpacing: -1, color: colors.text },
+  brandDot: { color: colors.accent }, brandLocation: { fontSize: 11, color: colors.muted, letterSpacing: 0.2 },
+  communityMark: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20, backgroundColor: colors.tint },
+  hero: { paddingTop: 72, paddingBottom: 42, overflow: "hidden" }, heroCompact: { paddingTop: 48, paddingBottom: 30 },
+  heroAura: { position: "absolute", width: 220, height: 220, borderRadius: 110, right: -120, top: 0, backgroundColor: colors.tint, opacity: dark ? 0.5 : 0.9 },
+  eyebrowRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 16 },
+  eyebrowLine: { width: 19, height: 2, backgroundColor: colors.accent, borderRadius: 1 },
+  eyebrow: { flexShrink: 1, fontSize: 9, fontWeight: "700", letterSpacing: 1.5, color: colors.muted, lineHeight: 15 },
+  heading: { color: colors.text, fontSize: 38, lineHeight: 45, fontWeight: "800", letterSpacing: -1.7 },
+  headingCompact: { fontSize: 34, lineHeight: 41, letterSpacing: -1.4 }, headingAccent: { color: colors.accent },
+  description: { color: colors.muted, fontSize: 14, lineHeight: 22, marginTop: 16, maxWidth: 325 },
+  features: { flexDirection: "row", flexWrap: "wrap", columnGap: 18, rowGap: 12, marginTop: 21 },
+  feature: { flexDirection: "row", alignItems: "center", gap: 6 }, featureText: { color: colors.muted, fontSize: 11, fontWeight: "500" },
+  roles: { gap: 12 }, sectionHeading: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 2 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: colors.text }, sectionHint: { fontSize: 11, color: colors.muted },
+  residentCard: { padding: 20, borderRadius: 22, backgroundColor: dark ? "#314bd6" : "#2946d8", borderWidth: 1, borderColor: dark ? "#5269ed" : "#2946d8" },
+  residentTop: { flexDirection: "row", gap: 13, alignItems: "center" }, residentIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#ffffff1f", alignItems: "center", justifyContent: "center" },
+  residentTitle: { color: "#fff", fontSize: 19, fontWeight: "700", letterSpacing: -0.4 }, residentDetail: { color: "#e1e7ff", fontSize: 12, lineHeight: 18, marginTop: 5 },
+  residentAction: { marginTop: 19, paddingTop: 13, borderTopWidth: 1, borderTopColor: "#ffffff30", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  residentActionText: { color: "#fff", fontSize: 12, fontWeight: "600", flex: 1, lineHeight: 19 }, residentArrow: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
+  managerCard: { flexDirection: "row", alignItems: "center", gap: 13, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, padding: 17, borderRadius: 20, minHeight: 88 },
+  managerIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", backgroundColor: colors.tint, borderRadius: 13 },
+  managerTitle: { color: colors.text, fontSize: 16, fontWeight: "700", letterSpacing: -0.3 }, managerDetail: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 4 },
+  pressed: { opacity: 0.78 },
+  notice: { marginTop: 18, padding: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.notice, borderRadius: 14 },
+  noticeText: { color: colors.muted, fontSize: 12, lineHeight: 19 }, retry: { minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }, link: { color: colors.accent, fontSize: 12, fontWeight: "600" },
+  helpArea: { marginTop: "auto", paddingTop: 28 }, helpAreaCompact: { paddingTop: 22 },
+  emergencyButton: { flexDirection: "row", alignItems: "center", gap: 11, minHeight: 78, padding: 15, borderRadius: 18, borderWidth: 1, borderColor: colors.errorBorder, backgroundColor: colors.errorBg },
+  emergencyIcon: { width: 34, alignItems: "center" }, emergencyText: { color: colors.emergency, fontSize: 14, fontWeight: "700" },
+  emergencyHint: { color: colors.emergency, opacity: 0.9, fontSize: 10, lineHeight: 16, marginTop: 4 },
+  resources: { marginTop: 13 },
+  guidesCard: { flexDirection: "row", alignItems: "center", gap: 11, minHeight: 64, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 16, borderWidth: 1 },
+  guidesIcon: { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  guidesTitleRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 7 },
+  guidesTitle: { fontSize: 14, fontWeight: "700", letterSpacing: -0.2 },
+  guidesDetail: { fontSize: 11, lineHeight: 17, marginTop: 3 },
+  offlinePill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
+  offlinePillText: { fontSize: 8, fontWeight: "700", letterSpacing: 0.2 },
+  footer: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 12, paddingTop: 16, alignItems: "center", gap: 4 },
+  footerBrand: { color: colors.muted, fontSize: 10, fontWeight: "600", lineHeight: 16 },
+  footerTagline: { color: colors.muted, fontSize: 9, lineHeight: 16 },
 });

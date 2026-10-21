@@ -1,54 +1,31 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Network from "expo-network";
-import { AppState as NativeAppState } from "react-native";
+import { AppState as NativeAppState, useColorScheme } from "react-native";
 import { api, invalidAuth, isCurrentSessionRequest, publicApi, setAccessToken } from "../lib/api";
-import { supportedRole, User, type Role } from "../lib/contracts";
+import { supportedRole, User } from "../lib/contracts";
 import { INTRO_SEEN_KEY, restoreSession, signOutSession } from "../lib/session";
 import { clearToken, readToken, saveToken } from "../lib/credentials";
 import { removeSecret, writeSecret } from "../lib/vault";
 import { palettes } from "../theme/colors";
+import { AppContext as Context, type AppContextValue } from "./AppContext";
+export { useApp } from "./AppContext";
 export { palettes } from "../theme/colors";
 
-type AppContext = {
-  user: User | null;
-  ready: boolean;
-  verified: boolean;
-  online: boolean;
-  sessionMessage: string;
-  theme: "dark" | "light";
-  colors: typeof palettes.dark;
-  offlineSaving: boolean;
-  introPending: boolean;
-  introCycle: number;
-  completeIntro: () => void;
-  setTheme: (theme: "dark" | "light") => Promise<void>;
-  setOfflineSaving: (value: boolean) => Promise<void>;
-  authenticate: (
-    path: "/auth/login" | "/auth/register" | "/auth/google",
-    body: Record<string, string>,
-    expectedRole?: Role,
-    remember?: boolean,
-  ) => Promise<void>;
-  refresh: () => Promise<void>;
-  updateProfile: (body: Record<string, string> | FormData) => Promise<void>;
-  logout: () => Promise<void>;
-};
-const Context = createContext<AppContext | null>(null);
 export function AppProvider({ children }: React.PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [verified, setVerified] = useState(false);
   const [online, setOnline] = useState(true);
   const [sessionMessage, setSessionMessage] = useState("");
-  const [theme, changeTheme] = useState<"dark" | "light">("dark");
+  const systemTheme = useColorScheme();
+  const [themePreference, changeThemePreference] = useState<"system" | "dark" | "light">("system");
+  const theme = themePreference === "system" ? (systemTheme === "dark" ? "dark" : "light") : themePreference;
   const [offlineSaving, changeOfflineSaving] = useState(true);
   const [introPending, setIntroPending] = useState(false);
   const [introCycle, setIntroCycle] = useState(0);
@@ -118,12 +95,13 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     (async () => {
       try {
         const preferenceKeys = [
-          "islasafe.theme",
+          "islasafe.theme-preference",
           "islasafe.offline-saving",
         ];
         const preferences = await AsyncStorage.multiGet(preferenceKeys).catch(() => preferenceKeys.map((key) => [key, null] as const));
         if (mounted) {
-          changeTheme(preferences[0][1] === "light" ? "light" : "dark");
+          const savedTheme = preferences[0][1];
+          changeThemePreference(savedTheme === "light" || savedTheme === "dark" ? savedTheme : "system");
           changeOfflineSaving(preferences[1][1] !== "false");
           // Replay on each signed-out launch, even if a prior intro was seen.
           // A verified restored session still proceeds straight to its dashboard.
@@ -186,8 +164,8 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       api.interceptors.response.eject(interceptor);
     };
   }, [completeIntro, expire, refresh]);
-  const authenticate: AppContext["authenticate"] = async (path, body, expectedRole, remember = true) => {
-    if ((path === "/auth/register" || path === "/auth/google") && expectedRole === "campmanager")
+  const authenticate: AppContextValue["authenticate"] = async (path, body, expectedRole, remember = true) => {
+    if (path === "/auth/register" && expectedRole === "campmanager")
       throw new Error("Camp Manager accounts are assigned by an administrator.");
     const { data } = await publicApi.post<{ token: string; user: User }>(
       path,
@@ -275,9 +253,9 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       },
     });
   };
-  const setTheme = async (value: "dark" | "light") => {
-    await AsyncStorage.setItem("islasafe.theme", value);
-    changeTheme(value);
+  const setTheme = async (value: "system" | "dark" | "light") => {
+    await AsyncStorage.setItem("islasafe.theme-preference", value);
+    changeThemePreference(value);
   };
   const setOfflineSaving = async (value: boolean) => {
     await AsyncStorage.setItem("islasafe.offline-saving", String(value));
@@ -290,6 +268,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     online,
     sessionMessage,
     theme,
+    themePreference,
     colors: palettes[theme],
     offlineSaving,
     introPending,
@@ -303,9 +282,4 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     logout,
   };
   return <Context.Provider value={value}>{children}</Context.Provider>;
-}
-export function useApp() {
-  const value = useContext(Context);
-  if (!value) throw new Error("AppProvider is missing.");
-  return value;
 }

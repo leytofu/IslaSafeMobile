@@ -16,12 +16,14 @@ import { errorMessage } from "../lib/api";
 import { ReferenceSettings } from "../components/ResidentReferenceViews";
 import { BarangayField } from "../components/BarangayField";
 import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
+import { UserAvatar } from "../components/UserAvatar";
 import { avatarProfileForm } from "../lib/profile-photo";
 export default function ProfileScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     user,
     verified,
     theme,
+    themePreference,
     setTheme,
     offlineSaving,
     setOfflineSaving,
@@ -45,6 +47,21 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
   const [editProfile, setEditProfile] = useState(false);
   const [showOffline, setShowOffline] = useState(false);
   const lock = useRef(false);
+  const isResident = user?.role === "residents";
+  function enterEdit() {
+    setFields({
+      name: user?.name || "",
+      email: user?.email || "",
+      contact_number: user?.contact_number || "",
+      office: user?.office || "",
+      jurisdiction: user?.jurisdiction || "",
+      barangay: user?.barangay || "",
+      address: user?.address || "",
+    });
+    setMessage("");
+    setError("");
+    setEditProfile(true);
+  }
   async function run(task: () => Promise<void>) {
     if (lock.current) return;
     lock.current = true;
@@ -65,7 +82,7 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
       embedded={embedded}
       backDisabled={busy}
       onBack={editProfile || showOffline ? () => { setEditProfile(false); setShowOffline(false); } : undefined}
-      backLabel={editProfile || showOffline ? "Back to settings" : "Back"}
+      backLabel={editProfile || showOffline ? (isResident ? "Back to settings" : "Back to profile") : "Back"}
       title={user?.role === "residents" ? "Settings" : "Your profile"}
       subtitle={
         user?.role === "campmanager"
@@ -75,18 +92,20 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
     >
       {!!error && <Notice error text={error} />}
       {!!message && <Notice text={message} />}
-      {user && !showOffline && <ProfilePhotoEditor key={user.id} user={user} theme={theme} disabled={busy} canSave={verified} onVerify={() => { void run(refresh); }}
+      {user && editProfile && !showOffline && <ProfilePhotoEditor key={user.id} user={user} theme={theme} disabled={busy} canSave={verified} onVerify={() => { void run(refresh); }}
         onBusyChange={(value) => { lock.current = value; setBusy(value); }}
         onSave={async (photo) => { await updateProfile(await avatarProfileForm(user, photo, Platform.OS)); }} />}
-      {user?.role === "residents" && !editProfile && !showOffline && <ReferenceSettings theme={theme} user={user}
+      {isResident && !editProfile && !showOffline && <ReferenceSettings theme={theme} themePreference={themePreference} user={user}
         onToggleTheme={() => { void run(() => setTheme(theme === "dark" ? "light" : "dark")); }}
-        onEditProfile={() => setEditProfile((current) => !current)}
+        onUseSystemTheme={() => { void run(() => setTheme("system")); }}
+        onEditProfile={enterEdit}
         onOffline={() => setShowOffline((current) => !current)} />}
-      {user?.role === "residents" && (editProfile || showOffline) && <Button secondary title="Back to settings" onPress={() => { setEditProfile(false); setShowOffline(false); }} />}
-      {(user?.role !== "residents" || editProfile) && <>
+      {embedded && (editProfile || showOffline) && <Button secondary title={isResident ? "Back to settings" : "Back to profile"} onPress={() => { setEditProfile(false); setShowOffline(false); }} />}
+      {user && (user.role !== "residents" || editProfile) && <>
       <Card>
-        <Copy title>{user?.name}</Copy>
-        <Copy muted>{user?.email}</Copy>
+        {!editProfile && <UserAvatar theme={theme} size={56} user={user} />}
+        <Copy title>{user.name}</Copy>
+        <Copy muted>{user.email}</Copy>
         <Copy>
           {verified
             ? "Session verified"
@@ -98,17 +117,20 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
           onPress={() => void run(refresh)}
           loading={busy}
         />
+        {!editProfile && <Button secondary title="Edit profile" onPress={enterEdit} />}
       </Card>
       <Card>
         <Copy title="Account information" />
-        {user?.role === "residents" && <>
+        {isResident && <>
           <Copy muted>Sign in with your email address and IslaSafe password.</Copy>
-          <Button secondary title={user.has_local_password === false ? "Set IslaSafe Password" : "Change IslaSafe password"} disabled={!verified || busy}
-            onPress={() => user.has_local_password === false
-              ? router.push("/account-security")
-              : router.push({ pathname: "/auth", params: { role: "residents", recovery: "1" } })} />
+          {user.has_local_password === false
+            ? <Copy muted>Contact your administrator to set up password access for this account.</Copy>
+            : <Button secondary title="Change IslaSafe password" disabled={!verified || busy}
+              onPress={() => router.push({ pathname: "/auth", params: { role: "residents", recovery: "1" } })} />}
         </>}
       </Card>
+      </>}
+      {user && editProfile && <>
       <Card>
         {(Object.keys(fields) as (keyof typeof fields)[]).filter((key) => user?.role === "residents" || !["barangay", "address"].includes(key)).map((key) => (
           key === "barangay" ? <BarangayField key={key} value={fields.barangay} onChange={(value) => setFields((current) => ({ ...current, barangay: value }))} disabled={busy} /> : <Field
@@ -158,10 +180,11 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
         <Copy title="Appearance" />
         <Choices
           label="Theme preference"
-          values={["dark", "light"]}
-          value={theme}
+          values={["system", "light", "dark"] as const}
+          value={themePreference}
           onChange={(value) => void run(() => setTheme(value))}
         />
+        <Copy muted>System follows your phone’s light or dark setting.</Copy>
       </Card>
       </>}
       {(user?.role !== "residents" || showOffline) && <>

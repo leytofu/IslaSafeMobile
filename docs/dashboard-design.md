@@ -8,7 +8,7 @@ The native resident dashboard, drawer, SOS entry, alerts, and settings follow th
 
 From mobile, run npx expo start --web --port 8083, then open http://localhost:8083/dashboard-preview without signing in. Use the header sun/moon button to switch themes, and the menu to inspect each screen. The preview's bottom tabs are static; its menu and sample controls work locally. The equivalent native development-build path is islasafe://dashboard-preview.
 
-Signed-in residents see the same dashboard and reference components. Theme changes persist through existing app state. Settings > Edit Profile or Account Security opens the existing profile/password/Google controls.
+Signed-in residents see the same dashboard and reference components. Theme changes persist through existing app state. Settings > Edit Profile or Account Security opens the existing profile and password controls.
 
 ## Map
 

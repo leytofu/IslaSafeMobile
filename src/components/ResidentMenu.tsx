@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { useNavigation } from "expo-router";
+import { DrawerActions } from "expo-router/react-navigation";
+import { useDrawerStatus } from "expo-router/drawer";
 import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useApp } from "../state/AppState";
@@ -74,40 +76,48 @@ function ResidentDrawer({ theme, onClose }: { theme: ThemeMode; onClose: (destin
 }
 
 export function ResidentMenuButton({ theme, onNavigate }: { theme: ThemeMode; onNavigate?: (destination: ResidentDestination) => void }) {
-  const { user } = useApp();
+  return onNavigate ? <PreviewMenuButton theme={theme} onNavigate={onNavigate} /> : <DrawerMenuButton theme={theme} />;
+}
+
+function DrawerMenuButton({ theme }: { theme: ThemeMode }) {
+  const navigation = useNavigation();
+  const expanded = useDrawerStatus() === "open";
+  const colors = dashboardPalettes[theme];
+  return <Pressable accessibilityRole="button" accessibilityLabel="Open navigation menu" accessibilityState={{ expanded }}
+    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+    style={({ pressed }) => [styles.menuButton, { backgroundColor: pressed ? colors.tint : colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}>
+    <Feather name="menu" size={21} color={colors.text} />
+  </Pressable>;
+}
+
+function PreviewMenuButton({ theme, onNavigate }: { theme: ThemeMode; onNavigate: (destination: ResidentDestination) => void }) {
   const colors = dashboardPalettes[theme];
   const [open, setOpen] = useState(false);
-  const [household, setHousehold] = useState(false);
   function navigate(destination: ResidentDestination) {
     setOpen(false);
-    if (onNavigate) { onNavigate(destination); return; }
-    switch (destination) {
-      case "home": router.push("/resident/home"); break;
-      case "map": router.push("/resident/map"); break;
-      case "sos": router.push("/resident/sos"); break;
-      case "alerts": router.push("/resident/alerts"); break;
-      case "guides": router.push("/guides"); break;
-      case "hazards": router.push("/hazards"); break;
-      case "settings": router.push("/resident/profile"); break;
-      case "household": setHousehold(true); break;
-    }
+    onNavigate(destination);
   }
   return <>
     <Pressable accessibilityRole="button" accessibilityLabel="Open resident menu" accessibilityState={{ expanded: open }} onPress={() => setOpen(true)} style={[styles.menuButton, { backgroundColor: colors.card, borderColor: colors.border }]}><Feather name="menu" size={21} color={colors.text} /></Pressable>
     {open && <ResidentDrawer theme={theme} onClose={(destination) => { setOpen(false); if (destination) navigate(destination); }} />}
-    <Modal visible={household} transparent animationType="slide" onRequestClose={() => setHousehold(false)}>
+  </>;
+}
+
+export function HouseholdSheet({ theme, visible, onClose }: { theme: ThemeMode; visible: boolean; onClose: () => void }) {
+  const { user } = useApp();
+  const colors = dashboardPalettes[theme];
+  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.sheetOverlay}><View style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.brandName, { color: colors.text }]}>My Household</Text><Text style={[styles.linkLabel, { color: colors.muted }]}>Household records preview</Text>
         <View style={[styles.householdCard, { backgroundColor: colors.tint }]}><Feather name="users" size={26} color={colors.accent} /><Text style={[styles.linkLabel, { color: colors.text }]}>{user?.name || "Juan Santos"}</Text><Text style={[styles.caption, { color: colors.muted }]}>{user?.barangay || "Poblacion"} · Household member</Text></View>
         <Text style={[styles.body, { color: colors.muted }]}>This screen previews the household design. Member management and household safety reporting are not connected.</Text>
-        <Pressable accessibilityRole="button" onPress={() => setHousehold(false)} style={[styles.closeButton, { backgroundColor: colors.primary }]}><Text style={styles.closeText}>Close</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={onClose} style={[styles.closeButton, { backgroundColor: colors.primary }]}><Text style={styles.closeText}>Close</Text></Pressable>
       </View></View>
-    </Modal>
-  </>;
+    </Modal>;
 }
 
 const styles = StyleSheet.create({
-  menuButton: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  menuButton: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   overlay: { flex: 1 }, backdrop: { backgroundColor: "#000" }, drawer: { flex: 1, borderRightWidth: 1 }, drawerContent: { flex: 1 },
   brand: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1 },
   navigationLabel: { flex: 1, minWidth: 0 },

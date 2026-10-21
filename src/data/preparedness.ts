@@ -2,6 +2,7 @@
 export const guides = [
   {
     title: "Flood preparedness",
+    icon: "droplet",
     source: "PAGASA • Floods",
     url: "https://www.pagasa.dost.gov.ph/learning-tools/floods",
     steps: [
@@ -14,6 +15,7 @@ export const guides = [
   },
   {
     title: "Earthquake preparedness",
+    icon: "activity",
     source: "PHIVOLCS • Earthquake Preparedness",
     url: "https://www.phivolcs.dost.gov.ph/earthquake-preparedness/",
     steps: [
@@ -25,6 +27,7 @@ export const guides = [
   },
   {
     title: "Tsunami: know the natural signs",
+    icon: "wind",
     source: "PHIVOLCS • Introduction to Tsunami",
     url: "https://www.phivolcs.dost.gov.ph/introduction-to-tsunami/",
     steps: [

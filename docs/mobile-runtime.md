@@ -1,50 +1,45 @@
 # Running the mobile app
 
-## Login from a physical phone
+## Login from a phone or Android emulator
 
 1. Connect the phone and development computer to the same Wi-Fi network.
-2. In `backend`, run `composer serve:lan` (or
-   `php artisan serve --host=0.0.0.0 --port=8000`). The default
-   `php artisan serve` listens on the computer's loopback address, which a phone
-   cannot reach.
-3. In `mobile/.env`, set `EXPO_PUBLIC_API_BASE_URL` to
-   `http://<computer-Wi-Fi-IPv4>:8000/api`. Use the computer's current Wi-Fi IPv4
-   address; `127.0.0.1` and `localhost` refer to the phone itself, and `10.0.2.2`
-   is for the Android emulator.
-4. Fully reload the Expo app after changing the environment variable.
-5. To check connectivity, open
-   `http://<computer-Wi-Fi-IPv4>:8000/up` in the phone browser.
-   The expected response is Laravel's application health page (HTTP 200).
-   A connection timeout means the phone still cannot reach Laravel;
-   check Wi-Fi isolation and the firewall's PHP/port 8000 access.
+2. In `backend`, run `php artisan serve --host=127.0.0.1 --port=8000`.
+3. In `mobile/.env`, leave `EXPO_PUBLIC_API_BASE_URL=` blank and set
+   `ISLASAFE_API_UPSTREAM=http://127.0.0.1:8000`.
+4. In `mobile`, run `npm start`. Scan this server's QR code on the phone.
+   Restart Metro after changing its proxy configuration or upstream address.
+5. The app automatically uses its Metro host for `/api` requests. Metro forwards
+   `/api` and `/storage` to Laravel. The same connection serves the app, bearer
+   authentication and profile photos, without requiring inbound PHP access.
+6. On an emulator using `exp://127.0.0.1:8081`, restore forwarding after each
+   emulator restart: `adb reverse tcp:8081 tcp:8081`. Substitute the actual Metro
+   port if different. A physical phone must use the QR code's LAN address.
+7. To check phone connectivity, open
+   `http://<computer-Wi-Fi-IPv4>:<Metro-port>/api/evacuation-centers` in its browser.
+   JSON confirms the full path to Laravel. A JSON 502 means Laravel is stopped;
+   a timeout means the phone cannot reach Metro (check Wi-Fi/firewall access).
 
-An Expo Metro tunnel exposes the JavaScript server, not the Laravel API.
+An explicit `EXPO_PUBLIC_API_BASE_URL` overrides this development proxy. Use it
+for a hosted API or a direct LAN listener; direct LAN access requires permitting
+PHP through the firewall. Bundled apps without Metro still need a reachable API
+URL. The proxy only runs in the development server.
 Mobile accepts Resident and Camp Manager accounts; Admin accounts use the web
 panel. Never share passwords to diagnose a connection problem.
 
-## Native features
+## Expo Go and optional native maps
 
-IslaSafe uses MapLibre and Google sign-in native modules. Open the IslaSafe
-development app, rather than Expo Go, to use these features.
+From `mobile`, run `npm start -- --clear` and open the project in Expo Go.
+Maps use the bundled WebView renderer in Expo Go. Email/password authentication
+does not require a custom development build.
 
-From the `mobile` folder, with an Android emulator or USB debugging device available:
+If an older installed development app lacks `RNCWebViewModule`, the map shows an
+availability message while the rest of the screen remains usable. Rebuild and
+reinstall with `npm run android` to restore maps. For Expo Go, use the version
+matching SDK 57. The WebView entry point is loaded only after its native module
+is detected, preventing a missing-module exception during route discovery.
 
-```sh
-npm run android
-```
+For native MapLibre, build the optional development app with `npm run android`
+and start Metro with `npm run start:dev-client -- --lan --clear`.
+Rebuild that app after changing native dependencies.
 
-For later JavaScript-only changes, start Metro and open the installed IslaSafe app:
-
-```sh
-npm start -- --clear
-```
-
-Rebuild the development app after changing native dependencies. A Metro reload
-cannot install missing native modules.
-
-If the map displays "Map requires the IslaSafe development app", the running
-binary does not include MapLibre's native camera or map module. Install the current
-development build. The rest of the app remains available; this message does not
-indicate that a native map has been rendered or verified.
-
-Google OAuth configuration is documented in [resident-auth.md](resident-auth.md).
+See [Expo Go checks](EXPO_GO_CHECK.md) and [phone maps](PHONE_MAP_SETUP.md).

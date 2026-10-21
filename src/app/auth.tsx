@@ -28,6 +28,7 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const lock = useRef(false);
+  const completed = useRef(false);
   if (!ready) return <SessionLoading />;
   if (user && verified && params.recovery !== "1")
     return (
@@ -39,6 +40,7 @@ export default function Auth() {
   function changeMode(next: typeof mode) {
     if (next === "register" && role !== "residents") return;
     setMode(next);
+    completed.current = false;
     setError("");
     setMessage("");
     setPassword("");
@@ -50,7 +52,7 @@ export default function Auth() {
     setOtp("");
   }
   async function run(task: () => Promise<void>) {
-    if (lock.current) return;
+    if (lock.current || completed.current) return;
     lock.current = true;
     setBusy(true);
     setError("");
@@ -87,7 +89,6 @@ export default function Auth() {
         if (registrationStep === 1) { setRegistrationStep(2); return; }
         if (password.length < 8) { setRegistrationStep(2); throw new Error("Choose a password with at least 8 characters."); }
         if (password !== confirmation) { setRegistrationStep(2); throw new Error("Your passwords don’t match. Please try again."); }
-        if (registrationStep === 2) { setRegistrationStep(3); return; }
       }
       if (mode !== "recovery") {
         if (!email.trim() || !password)
@@ -107,6 +108,7 @@ export default function Auth() {
           role ?? undefined,
           mode === "login" ? rememberMe : true,
         );
+        completed.current = true;
         setPassword("");
         setConfirmation("");
         return;
@@ -155,13 +157,12 @@ export default function Auth() {
       onRememberMeChange={setRememberMe}
       error={error}
       message={message}
-      name={{ value: name, onChangeText: setName }}
-      email={{ value: email, onChangeText: setEmail }}
-      password={{ value: password, onChangeText: setPassword }}
-      confirmation={{ value: confirmation, onChangeText: setConfirmation }}
-      otp={{ value: otp, onChangeText: setOtp }}
+      name={{ value: name, onChangeText: value => { setName(value); setError(""); } }}
+      email={{ value: email, onChangeText: value => { setEmail(value); setError(""); } }}
+      password={{ value: password, onChangeText: value => { setPassword(value); setError(""); } }}
+      confirmation={{ value: confirmation, onChangeText: value => { setConfirmation(value); setError(""); } }}
+      otp={{ value: otp, onChangeText: value => { setOtp(value); setError(""); } }}
       onSubmit={submit}
-      onRegistrationStepChange={(step) => { if (busy) return; setRegistrationStep(step); setError(""); }}
       onModeChange={changeMode}
       onBack={() => {
         Keyboard.dismiss();
@@ -169,7 +170,9 @@ export default function Auth() {
           router.replace("/resident/profile");
           return;
         }
-        if (mode === 'register' && registrationStep > 0) {
+        if (mode === 'register' && registrationStep === 2) {
+          changeMode('login');
+        } else if (mode === 'register' && registrationStep > 0) {
           setRegistrationStep(registrationStep - 1);
           setError('');
         } else if (mode !== 'login') changeMode('login');

@@ -14,15 +14,10 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   android: {
     package: "ph.islasafe.mobile",
-    predictiveBackGestureEnabled: true,
+    predictiveBackGestureEnabled: false,
   },
   ios: { bundleIdentifier: "ph.islasafe.mobile", supportsTablet: true },
   plugins: [
-    ...(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
-      ? [["react-native-nitro-google-signin", {
-          iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME,
-        }] as [string, { iosUrlScheme: string | undefined }]]
-      : []),
     "./plugins/withShortNativePaths",
     "expo-router",
     "expo-secure-store",
@@ -35,8 +30,12 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#050810",
-        image: "./assets/app-logo.png",
+        backgroundColor: "#f5f7fb",
+        image: "./assets/reference-brand.png",
+        dark: {
+          backgroundColor: "#050810",
+          image: "./assets/reference-brand.png",
+        },
         imageWidth: 96,
       },
     ],

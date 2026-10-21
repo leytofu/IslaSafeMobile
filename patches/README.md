@@ -1,6 +1,6 @@
 # Expo Router SDK 57 initial-link lifecycle patch
 
-`expo-router+57.0.27.patch` fixes the error captured in
+`expo-router+57.0.28.patch` fixes the error captured in
 `.expo/dev/logs/start.log`: **Can't perform a React state update on a component
 that hasn't mounted yet**, from `url.then` in `useLinking.native.js` and
 `ContextNavigator` in `ExpoRoot.js`.
@@ -18,6 +18,9 @@ stops installation rather than silently losing the workaround. When updating
 Expo Router, review the upstream fix and remove the patch once the installed
 version includes a verified equivalent. Do not upgrade Expo SDK solely to hide
 this warning.
+
+The patch was reapplied to Router 57.0.28 after checking that its upstream
+navigation container still has the same initial-link lifecycle behavior.
 
 `tests/router-initial-link.test.ts` runs the installed container against a
 controlled React lifecycle to verify the before-commit race, normal deep links,

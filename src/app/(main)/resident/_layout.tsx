@@ -1,9 +1,9 @@
 import { Redirect, Tabs } from "expo-router";
-import { residentTabs } from "../../components/dashboard/ResidentNavigation";
-import { ResidentAccountBar } from "../../components/ResidentAccountBar";
-import { dashboardPalettes } from "../../theme/colors";
-import { SessionLoading } from "../../components/SessionLoading";
-import { useApp } from "../../state/AppState";
+import { residentTabs } from "../../../components/dashboard/ResidentNavigation";
+import { ResidentAccountBar } from "../../../components/ResidentAccountBar";
+import { dashboardPalettes } from "../../../theme/colors";
+import { SessionLoading } from "../../../components/SessionLoading";
+import { useApp } from "../../../state/AppState";
 export default function ResidentLayout() {
   const { user, ready, verified, theme } = useApp();
   const colors = dashboardPalettes[theme];

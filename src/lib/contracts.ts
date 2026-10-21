@@ -9,6 +9,7 @@ export type User = {
   jurisdiction?: string | null;
   avatar_url?: string | null;
   has_local_password?: boolean;
+  // Legacy backend identities still restrict email edits; no provider login is exposed.
   google_linked?: boolean;
   barangay?: string | null;
   address?: string | null;

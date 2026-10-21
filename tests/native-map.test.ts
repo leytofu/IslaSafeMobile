@@ -11,7 +11,7 @@ const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
 
-function loadMap(modules: string[]) {
+function loadMap(modules: string[], expoGo = false, nativeEntryCrashes = false) {
   let nativeImports = 0;
   const nativeMap = () => null;
   const embeddedMap = () => null;
@@ -19,11 +19,16 @@ function loadMap(modules: string[]) {
   runInNewContext(compiled, {
     exports,
     require(name: string) {
+      if (name === "expo") return { isRunningInExpoGo: () => expoGo };
       if (name === "react-native") return { TurboModuleRegistry: { get: (id: string) => modules.includes(id) ? {} : null } };
       if (name === "./EmbeddedIslandMap") return { default: embeddedMap };
       if (name === "react/jsx-runtime") return { jsx: (type: unknown, props: unknown) => ({ type, props }) };
       if (name === "./IslandMapNative") {
         nativeImports++;
+        if (nativeEntryCrashes)
+          throw new Error(
+            "[Invariant Violation: TurboModuleRegistry.getEnforcing(...): 'MLRNCameraModule' could not be found. Verify that a module by this name is registered in the native binary.]",
+          );
         assert.ok(modules.includes("MLRNCameraModule"), "Missing native camera would crash MapLibre import");
         return { default: nativeMap };
       }
@@ -52,5 +57,21 @@ test("supported native builds load the map and preserve center selection props",
   assert.equal(rendered.type, map.nativeMap);
   assert.equal((rendered.props as typeof props).centers, props.centers);
   assert.equal((rendered.props as typeof props).onSelectCenter, props.onSelectCenter);
+  assert.equal(map.imports(), 1);
+});
+
+test("Expo Go never imports native MapLibre even if native registry probes return modules", () => {
+  const map = loadMap(["MLRNCameraModule", "MLRNMapViewModule"], true);
+  assert.equal(map.render({ centers: [] }).type, map.embeddedMap);
+  assert.equal(map.imports(), 0);
+});
+
+test("a native entry that enforces a missing MapLibre module falls back instead of crashing", () => {
+  const map = loadMap(["MLRNCameraModule", "MLRNMapViewModule"], false, true);
+  const props = { centers: [{ id: 1 }], selectedCenterId: 1, compact: true, onSelectCenter: () => {} };
+  const rendered = map.render(props);
+  assert.equal(rendered.type, map.embeddedMap);
+  assert.equal((rendered.props as typeof props).onSelectCenter, props.onSelectCenter);
+  assert.equal((rendered.props as typeof props).compact, true);
   assert.equal(map.imports(), 1);
 });

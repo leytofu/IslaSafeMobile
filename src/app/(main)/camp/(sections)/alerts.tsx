@@ -1,6 +1,6 @@
-import { Card, Copy, Notice, Screen, Button } from "../../components/ui";
-import { useCampContext } from "../../hooks/useCampContext";
-import { AdvisoryInbox } from "../../components/AdvisoryInbox";
+import { Card, Copy, Notice, Screen, Button } from "../../../../components/ui";
+import { useCampContext } from "../../../../hooks/useCampContext";
+import { AdvisoryInbox } from "../../../../components/AdvisoryInbox";
 export default function CampAlerts() {
   const { data, error, refresh } = useCampContext();
   return <Screen title="Camp updates" subtitle="Evacuation operations">

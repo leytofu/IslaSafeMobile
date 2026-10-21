@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import IslandMap from '../../components/IslandMap';
-import { Button, Card, Copy, Dialog, Loading, Notice, Screen, SelectField, Unavailable } from '../../components/ui';
-import { useEvacuationCenters } from '../../hooks/useEvacuationCenters';
-import { useApp } from '../../state/AppState';
-import { hazards } from '../../data/hazards';
-import { barangayKey, barangayLabel, barangayOptions } from '../../data/barangays';
+import IslandMap from '../../../components/IslandMap';
+import { Button, Card, Copy, Dialog, Loading, Notice, Screen, SelectField, Unavailable } from '../../../components/ui';
+import { useEvacuationCenters } from '../../../hooks/useEvacuationCenters';
+import { useApp } from '../../../state/AppState';
+import { hazards } from '../../../data/hazards';
+import { barangayKey, barangayLabel, barangayOptions } from '../../../data/barangays';
 
 export default function MapScreen() {
   const { centers, error, loading, updatedAt, refresh } = useEvacuationCenters();
@@ -53,7 +53,7 @@ export default function MapScreen() {
     {centers.length > 0 && <Card><Copy title>Operational centers</Copy>{centers.map((center) => <Button key={center.id} secondary icon="home" title={`${center.name} - ${center.place.barangay}`} onPress={() => setSelectedId(center.id)} />)}</Card>}
     <Notice text="Map and Satellite use the same default basemap providers as the admin portal. Tiles need connectivity. Facility locations do not indicate a verified evacuation route." />
     <Unavailable title="Hazard overlays & evacuation routes unavailable" detail="The supplied hazard images have no verified georeferencing, and route guidance is not yet available." />
-    <Button secondary title="Open six offline hazard reference maps" onPress={() => router.push('/hazards')} />
+    <Button secondary title="Open six offline hazard reference maps" onPress={() => router.navigate('/hazards')} />
   </Screen>;
 }
 

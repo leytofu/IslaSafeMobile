@@ -19,8 +19,7 @@ import { useApp } from "../state/AppState";
 import { router, useFocusEffect, type Href } from "expo-router";
 import { listSos } from "../lib/sos";
 import { palettes, type ThemeMode } from "../theme/colors";
-import { ResidentMenuButton } from "./ResidentMenu";
-import { BackButton } from "./BackButton";
+import { NavigationHeader, useDetailBack } from "./NavigationHeader";
 export function Copy({
   children,
   muted = false,
@@ -95,8 +94,8 @@ export function Screen({
   backLabel = "Back",
   backFallback,
 }: React.PropsWithChildren<{ title: string; subtitle?: string; embedded?: boolean; showBack?: boolean; onBack?: () => void; backDisabled?: boolean; backLabel?: string; backFallback?: Href }>) {
-  const { colors, user, verified, theme, setTheme } = useApp();
-  const fallback = backFallback ?? (verified && user ? user.role === "residents" ? "/resident/home" : "/camp/overview" : "/welcome");
+  const { colors } = useApp();
+  useDetailBack(embedded ? undefined : onBack, backDisabled);
   return (
     <SafeAreaView
       edges={embedded ? [] : ["top", "left", "right"]}
@@ -106,17 +105,7 @@ export function Screen({
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {!embedded && <View style={[styles.headerPanel, { borderBottomColor: colors.border }]}>
-          <View style={styles.header}>
-            {showBack && <BackButton theme={theme} onPress={onBack} fallback={fallback} disabled={backDisabled} label={backLabel} />}
-            <View style={styles.headerActions}>
-              {user?.role === "residents" && <ResidentMenuButton theme={theme} />}
-              <Pressable accessibilityRole="button" accessibilityLabel="Toggle color theme" onPress={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }} style={[styles.headerTheme, { borderColor: colors.border }]}><Feather name={theme === "dark" ? "sun" : "moon"} size={19} color={colors.text} /></Pressable>
-            </View>
-          </View>
-          <Text accessibilityRole="header" style={[styles.screenTitle, { color: colors.text }]}>{title}</Text>
-          {subtitle && <Text style={[styles.screenSubtitle, { color: colors.muted }]}>{subtitle}</Text>}
-        </View>}
+        {!embedded && <NavigationHeader title={title} subtitle={subtitle} showBack={showBack} onBack={onBack} backDisabled={backDisabled} backLabel={backLabel} backFallback={backFallback} />}
         <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
           <SessionNotices />
           {children}

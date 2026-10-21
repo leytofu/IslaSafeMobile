@@ -1,5 +1,67 @@
 # Expo Go on a phone
 
+## Development API connection: 2026-10-21
+
+The default connection now uses Metro's `/api` proxy to the local Laravel
+listener. Leave `EXPO_PUBLIC_API_BASE_URL` blank; set `ISLASAFE_API_UPSTREAM` to
+`http://127.0.0.1:8000`. Both native builds and Expo Go derive their API host from
+the current Metro manifest. `/storage` is forwarded too, so profile photos use
+the same reachable host. Restart Metro and reopen the project after switching
+from the previous direct LAN API configuration.
+
+Follow [current runtime setup](mobile-runtime.md). The direct LAN addresses in
+the historical verification notes below describe earlier sessions.
+
+Verified the new connection on 2026-10-21:
+
+- Expo Go on Pixel_6 restored an account and received HTTP 200 from `/api/auth/me`,
+  `/api/advisories` and `/api/evacuation-centers` through Metro.
+- The installed Android app completed a fresh sign-in with a disposable resident
+  and reached profile completion. The account and its tokens were removed afterward.
+- The connected Xiaomi 23129RAA4G phone at `192.168.0.100` received HTTP 200 for
+  authenticated `/api/advisories` and `/api/evacuation-centers` requests. The
+  proxy's request log identifies the originating client address and status.
+- All 76 tests, typecheck, lint and Android export passed. Proxy integration tests
+  cover bearer headers, multipart bytes, photo paths, status codes and a stopped
+  backend. Test requests do not print tokens, passwords or account payloads.
+
+## Runtime verification: 2026-10-21
+
+- Guarded the WebView entry point against a missing `RNCWebViewModule` before
+  importing it. Older binaries now show a map availability message instead of
+  crashing during route loading. Compatible binaries retain the interactive map.
+- Typecheck, lint, all 72 tests, dependency compatibility check and Android export
+  passed. Export used `--max-workers 1` to limit memory use on this workstation.
+- Cold booted Pixel_6 with software graphics. Expo Go 57.0.9 reached welcome and
+  Guides without JavaScript or Android runtime errors. The installed IslaSafe
+  development app also reached welcome using the current Metro bundle.
+- Physical-phone rendering and API connectivity remain unverified. Session
+  verification was unavailable in Expo Go; this is separate from app startup.
+
+## Latest verification: 2026-10-19
+
+- Updated Expo to 57.0.30 and Router to 57.0.28; retained the tested initial-link
+  lifecycle patch for the new Router patch version.
+- Expo Go explicitly selects the WebView map before probing native MapLibre.
+  A regression test also covers a registry that reports MapLibre modules in Go.
+- Removed Google authentication, account linking, native Google/Nitro packages,
+  and mobile OAuth environment settings. Existing backend identities are retained.
+- Typecheck and lint passed; all 59 retained tests passed; Android export passed.
+- Expo Doctor passed 21/21 checks; `expo install --check` passed.
+- Corrected this workstation's ignored `.env` API address to its current Wi-Fi
+  IPv4 address. A separate Laravel listener on that address returned HTTP 200
+  for `/api/evacuation-centers`; the existing localhost listener was retained.
+- Restarted Metro with `--go --lan --clear` on port 8081. Its Android manifest
+  returned HTTP 200, SDK 57.0.0 and the current LAN bundle URL.
+- No Android device was attached. Physical-phone UI, permissions and network
+  access remain unverified. Open `exp://192.168.8.100:8081` in Expo Go on the
+  same Wi-Fi for this session. This address may change on another network.
+- `npm audit` reports 32 dependency advisories (11 moderate, 21 high), including
+  Expo/React Native tooling dependencies. These remain unresolved; the audit
+  proposes incompatible major changes or has no fix for several packages.
+  No forced dependency upgrades were applied. The full local report is saved
+  in ignored `artifacts/dependency-audit.json`.
+
 Use Expo Go compatible with this project's Expo SDK 57. Keep the phone and
 computer on the same Wi-Fi.
 
@@ -33,9 +95,10 @@ the UI-thread animation runtime is starting. Startup ordering is covered by
 `tests/startup-splash.test.ts`. Do not make splash release depend on a GPS fix or
 on the onboarding animation's completion callback.
 
-Onboarding also has a JavaScript completion deadline and explicit final visible
-styles. Role selection has a guarded navigation deadline, so a stalled native
-animation cannot keep the welcome controls invisible or block sign-in.
+The welcome screen uses a short fade with reduced-motion support. Role selection,
+emergency SOS and reference links are available immediately; no intro animation
+or animation completion callback gates navigation. The welcome content and footer
+share a scroll view so small screens and larger text can reach every action.
 
 ## Android emulator recovery
 
@@ -84,8 +147,8 @@ sign-in screens. A custom build needs its own native startup investigation.
   build retains embedded drawable names. Expo Go needs Metro connectivity to load
   uncached images; its offline cache is not guaranteed.
 - Email/password sign-in, SecureStore token persistence and the mobile advisory
-  inbox use the same Laravel API. Google sign-in needs a custom development build
-  and returns a clear fallback message before any unsupported native import.
+  inbox use the same Laravel API. Google authentication and account linking
+  have been removed; no Google native module is needed.
 - In-app advisories work in Expo Go. Remote OS push notifications remain inactive.
 
 Validation: `npm run doctor`, `npx expo install --check`, `npm run typecheck`,

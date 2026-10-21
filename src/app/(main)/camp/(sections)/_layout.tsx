@@ -1,7 +1,7 @@
 import { Redirect, Tabs } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { SessionLoading } from "../../components/SessionLoading";
-import { useApp } from "../../state/AppState";
+import { SessionLoading } from "../../../../components/SessionLoading";
+import { useApp } from "../../../../state/AppState";
 const screens = [
   { name: "overview", title: "Overview", icon: "grid" },
   { name: "center", title: "Center", icon: "home" },
@@ -32,7 +32,6 @@ export default function CampLayout() {
         tabBarLabelStyle: { fontSize: 12 },
       }}
     >
-      <Tabs.Screen name="register" options={{ href: null, title: "Register evacuee" }} />
       {screens.map((screen) => (
         <Tabs.Screen
           key={screen.name}

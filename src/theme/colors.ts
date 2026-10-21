@@ -43,6 +43,7 @@ export type DashboardColors = typeof dashboardPalettes.light;
 export const authPalettes = {
   dark: {
     ...palettes.dark,
+    success: dashboardPalettes.dark.success,
     accent: "#b5c1ff", input: "#0d1729", inputBorder: "#2b3952",
     inputFocus: "#121d34", focusBorder: "#a5b4fc", label: "#d4deed",
     placeholder: "#7e8ea8", badge: "#111c35", badgeBorder: "#283455",
@@ -51,6 +52,7 @@ export const authPalettes = {
   },
   light: {
     ...palettes.light,
+    success: dashboardPalettes.light.success,
     accent: palettes.light.primary, input: "#ffffff", inputBorder: "#cbd5e1",
     inputFocus: "#f0f4ff", focusBorder: palettes.light.primary, label: "#263650",
     placeholder: "#64748b", badge: "#e7edff", badgeBorder: "#ccd7fb",

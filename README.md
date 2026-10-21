@@ -1,6 +1,6 @@
 # IslaSafe mobile — local capstone development
 
-React Native / Expo SDK **57.0.28**, TypeScript, Expo Router, MapLibre React Native **11.5.0**. All application changes are contained in `mobile/`. Backend source, migrations, and the admin frontend are not changed. This project does not configure EAS, Play Console, production signing, production hosting, or live push notifications. `ISLASAFE_BUILD=production` deliberately rejects configuration.
+React Native / Expo SDK **57.0.30**, TypeScript, Expo Router, MapLibre React Native **11.5.0**. All application changes are contained in `mobile/`. Backend source, migrations, and the admin frontend are not changed. This project does not configure EAS, Play Console, production signing, production hosting, or live push notifications. `ISLASAFE_BUILD=production` deliberately rejects configuration.
 
 ## Expo Go on a physical phone
 
@@ -43,16 +43,15 @@ MySQL and the existing database must already be configured. This implementation 
 
 ## API configuration
 
-`EXPO_PUBLIC_API_BASE_URL` is required for your environment; its default development value is `http://10.0.2.2:8000/api` for the Android emulator. `localhost` on the emulator is the emulator itself. For physical Android devices, set the variable to your computer's actual LAN IPv4 address, start Laravel with `--host=0.0.0.0`, and ensure both devices share the local network and the firewall permits port 8000. Find your address with `ipconfig`; do not copy an invented example address. Restart Metro after changing variables.
+Leave `EXPO_PUBLIC_API_BASE_URL=` blank during development. The app uses its Metro host, and Metro forwards `/api` and `/storage` to `ISLASAFE_API_UPSTREAM` (default `http://127.0.0.1:8000`). Phones and emulators share the same connection used to load the app, without opening a separate PHP port. For a hosted API, set `EXPO_PUBLIC_API_BASE_URL` explicitly. See [mobile runtime setup](docs/mobile-runtime.md) for emulator forwarding and connection checks.
 
 For browser preview only:
 
 ```powershell
-$env:EXPO_PUBLIC_API_BASE_URL = 'http://127.0.0.1:8000/api'
 npx expo start --web --port 8082
 ```
 
-Browser preview intentionally stores credentials and SOS records **only in memory**. A browser reload discards them. Native map, Android permissions, encryption, and persistent sessions must be tested on Android. Run separate Metro processes with the appropriate API URL if previewing browser and emulator simultaneously.
+Browser preview intentionally stores credentials and SOS records **only in memory**. A browser reload discards them. Native map, Android permissions, encryption, and persistent sessions must be tested on Android. The development proxy works on the selected Metro port for browser, emulator and phone clients.
 
 ## Implemented behavior
 

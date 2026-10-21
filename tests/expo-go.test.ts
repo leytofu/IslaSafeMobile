@@ -27,20 +27,3 @@ test("Expo Go Android resolves all six hazard images as Metro assets, not missin
     for (const hazard of exports.hazards!) assert.equal(typeof hazard.source, nativeAssets ? "object" : "number");
   }
 });
-
-test("Google sign-in in Expo Go returns a useful error without importing unsupported native modules", async () => {
-  const exports: { googleProof?: (purpose: string) => Promise<unknown> } = {};
-  const imports: string[] = [];
-  runInNewContext(compile("../src/lib/google.ts"), {
-    exports, process: { env: { EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: "configured-client" } },
-    require(name: string) {
-      imports.push(name);
-      if (name === "react-native") return { Platform: { OS: "android" } };
-      if (name === "expo") return { isRunningInExpoGo: () => true };
-      if (name === "./api") return {};
-      throw new Error(`Unsupported native import: ${name}`);
-    },
-  });
-  await assert.rejects(exports.googleProof!("login"), /In Expo Go, sign in with your email/);
-  assert.equal(imports.includes("react-native-nitro-google-signin"), false);
-});
