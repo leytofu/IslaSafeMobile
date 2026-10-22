@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { drawerTarget } from "../src/lib/navigation";
+import { residentDestinations, campDestinations, drawerTarget } from "../src/lib/navigation";
 
 // Exercise the installed SDK's actual routers so history and Android Back
 // semantics remain covered when its navigation implementation changes.
@@ -68,4 +68,13 @@ test("menu targets use the actual nested navigators and NAVIGATE closes the draw
   state = router.getStateForAction(state, { type: "NAVIGATE", payload: target }, config);
   assert(!state.history.some((entry: { type: string }) => entry.type === "drawer"));
   assert.equal(state.routes[state.index].params.screen, "map");
+});
+
+
+test("menus retire household and offline maps while retaining settings", () => {
+  for (const destinations of [residentDestinations, campDestinations]) {
+    assert(!destinations.some(item => ["household", "hazards"].includes(item.key)));
+    assert(!destinations.some(item => item.href === "/hazards"));
+    assert(destinations.some(item => item.title === "Settings"));
+  }
 });

@@ -5,6 +5,7 @@ import { dashboardPalettes, type ThemeMode } from "../theme/colors";
 import { Badge, Surface, type DashboardIcon } from "./dashboard/DashboardPrimitives";
 import type { User } from "../lib/contracts";
 import { UserAvatar } from "./UserAvatar";
+import { ThemeSwitch } from "./ThemeSwitch";
 
 export function ReferenceSosHero({ theme, onPrepare, disabled = false }: { theme: ThemeMode; onPrepare?: () => void; disabled?: boolean }) {
   const c = dashboardPalettes[theme];
@@ -42,7 +43,7 @@ const settingsItems: { key: string; icon: DashboardIcon; title: string; detail: 
   { key: "security", icon: "lock", title: "Account Security", detail: "Email & IslaSafe password" },
   { key: "contacts", icon: "phone", title: "Emergency Contacts", detail: "Family & neighbor contacts" },
   { key: "notifications", icon: "bell", title: "Notification Settings", detail: "Alerts, advisories, SOS updates" },
-  { key: "offline", icon: "download-cloud", title: "Offline Map Settings", detail: "Hazard maps & emergency guides" },
+  { key: "offline", icon: "download-cloud", title: "SOS Draft Settings", detail: "Secure local drafts & saved requests" },
   { key: "language", icon: "globe", title: "Language", detail: "Filipino / English" },
   { key: "privacy", icon: "shield", title: "Privacy Policy", detail: "Your data & privacy" },
   { key: "about", icon: "info", title: "About IslaSafe", detail: "v1.0.0 · MDRRMO-CPG" },
@@ -64,7 +65,7 @@ export function ReferenceSettings({ theme, themePreference, user, onToggleTheme,
       <UserAvatar user={user?.name ? { name: user.name, avatar_url: user.avatar_url } : undefined} theme={theme} size={52} />
       <View style={styles.flex}><Text style={[styles.heading, { color: c.text }]}>{user?.name || "Juan Santos"}</Text><Text style={[styles.caption, { color: c.muted }]}>{user?.barangay || "Poblacion"} · Resident</Text><Text style={[styles.caption, { color: c.subtle }]}>{user?.email || "juan@example.com"}</Text></View>
     </Surface>
-    <Surface colors={c}><Text style={[styles.caption, { color: c.subtle, marginBottom: 12 }]}>APPEARANCE</Text><View style={styles.row}><View style={styles.inline}><Feather name={theme === "dark" ? "moon" : "sun"} size={20} color={c.accent} /><Text style={[styles.itemTitle, { color: c.text }]}>Dark Mode</Text></View><Switch accessibilityLabel="Dark Mode" value={theme === "dark"} onValueChange={onToggleTheme} trackColor={{ false: c.border, true: c.primary }} thumbColor="#ffffff" /></View>{onUseSystemTheme && (themePreference === "system" ? <Text style={[styles.caption, { color: c.subtle, marginTop: 10 }]}>Following your phone’s appearance</Text> : <Pressable accessibilityRole="button" accessibilityLabel="Use phone appearance" onPress={onUseSystemTheme} style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}><Text style={[styles.caption, { color: c.accent }]}>Use phone appearance</Text></Pressable>)}</Surface>
+    <Surface colors={c}><Text style={[styles.caption, { color: c.subtle, marginBottom: 12 }]}>APPEARANCE</Text><View style={styles.row}><View style={styles.inline}><Feather name={theme === "dark" ? "moon" : "sun"} size={20} color={c.accent} /><Text style={[styles.itemTitle, { color: c.text }]}>Dark Mode</Text></View><ThemeSwitch dark={theme === "dark"} onToggle={onToggleTheme} /></View>{onUseSystemTheme && (themePreference === "system" ? <Text style={[styles.caption, { color: c.subtle, marginTop: 10 }]}>Following your phone’s appearance</Text> : <Pressable accessibilityRole="button" accessibilityLabel="Use phone appearance" onPress={onUseSystemTheme} style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}><Text style={[styles.caption, { color: c.accent }]}>Use phone appearance</Text></Pressable>)}</Surface>
     <Surface colors={c} style={{ padding: 0, overflow: "hidden" }}>
       {settingsItems.map((item, index) => <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={item.title} onPress={() => choose(item.key)} style={({ pressed }) => [styles.settingsRow, { borderTopWidth: index ? 1 : 0, borderColor: c.border, backgroundColor: pressed ? c.tint : "transparent" }]}><View style={[styles.settingIcon, { backgroundColor: c.tint }]}><Feather name={item.icon} size={17} color={c.accent} /></View><View style={styles.flex}><Text style={[styles.itemTitle, { color: c.text }]}>{item.title}</Text><Text style={[styles.caption, { color: c.subtle }]}>{item.detail}</Text></View><Feather name="chevron-right" size={17} color={c.subtle} /></Pressable>)}
     </Surface>

@@ -1,20 +1,18 @@
 import { useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { ResidentDashboard } from "./dashboard/ResidentDashboard";
-import { DashboardPreviewNavigation } from "./dashboard/ResidentNavigation";
 import { dashboardPalettes, type ThemeMode } from "../theme/colors";
-import { IconButton, Surface } from "./dashboard/DashboardPrimitives";
+import { Surface } from "./dashboard/DashboardPrimitives";
 import { ResidentMenuButton, type ResidentDestination } from "./ResidentMenu";
 import { ReferenceAlerts, ReferenceSettings, ReferenceSosHero } from "./ResidentReferenceViews";
 import { SelectField } from "./ui";
 import { barangayOptions } from "../data/barangays";
 import { guides } from "../data/preparedness";
-import { hazards } from "../data/hazards";
 
-const titles: Record<ResidentDestination, string> = { home: "Dashboard", map: "CPG hazard map", sos: "Emergency SOS", alerts: "Alerts & Advisories", household: "My Household", settings: "Settings", guides: "Preparedness Guides", hazards: "Offline Hazard Maps" };
+const titles: Record<ResidentDestination, string> = { home: "Dashboard", map: "CPG hazard map", sos: "Emergency SOS", alerts: "Alerts & Advisories", settings: "Settings", guides: "Preparedness Guides" };
 
 export default function ResidentDesignPreview() {
   const [theme, setTheme] = useState<ThemeMode>("dark");
@@ -25,10 +23,10 @@ export default function ResidentDesignPreview() {
   const c = dashboardPalettes[theme];
   const toggle = () => setTheme((current) => current === "dark" ? "light" : "dark");
   const menu = <ResidentMenuButton theme={theme} onNavigate={setScreen} />;
-  if (screen === "home") return <ResidentDashboard theme={theme} onToggleTheme={toggle} showPreviewNavigation menuControl={menu} onMap={() => setScreen("map")} onSos={() => setScreen("sos")} onGuides={() => setScreen("guides")} onHazards={() => setScreen("hazards")} />;
+  if (screen === "home") return <ResidentDashboard theme={theme} menuControl={menu} onMap={() => setScreen("map")} onSos={() => setScreen("sos")} onGuides={() => setScreen("guides")} />;
   return <SafeAreaView edges={["top", "left", "right"]} style={[styles.root, { backgroundColor: c.bg }]}>
     <StatusBar style={theme === "dark" ? "light" : "dark"} />
-    <View style={styles.header}>{menu}<Text style={[styles.heading, { color: c.text }]}>{titles[screen]}</Text><IconButton colors={c} icon={theme === "dark" ? "sun" : "moon"} label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} onPress={toggle} /></View>
+    <View style={styles.header}>{menu}<Text style={[styles.heading, { color: c.text }]}>{titles[screen]}</Text></View>
     <ScrollView contentContainerStyle={styles.page}>
       <Text style={[styles.caption, { color: c.subtle }]}>REFERENCE DESIGN PREVIEW · SAMPLE CONTENT</Text>
       {screen === "alerts" && <ReferenceAlerts theme={theme} />}
@@ -45,12 +43,9 @@ export default function ResidentDesignPreview() {
         </View><Text style={[styles.caption, { color: c.subtle }]}>Control layout preview. The native app uses the admin portal’s OSM streets / Esri satellite basemaps and real evacuation center records.</Text>
         <Surface colors={c}><Text style={[styles.heading, { color: c.text }]}>Map layers</Text>{["Hazard zones", "Evacuation centers", "Barangay labels"].map((label) => <View key={label} style={styles.selectRow}><Feather name={label === "Evacuation centers" ? "check-square" : "square"} color={c.accent} size={16} /><Text style={[styles.body, { color: c.text, flex: 1 }]}>{label}</Text></View>)}</Surface>
       </>}
-      {screen === "household" && <><Surface colors={c}><Text style={[styles.heading, { color: c.text }]}>Santos Household</Text><Text style={[styles.body, { color: c.muted }]}>Poblacion · Purok 1 · 3 members</Text></Surface>{[["Juan Santos", "Head of household"], ["Maria Santos", "Spouse"], ["Ana Santos", "Child"]].map(([name, role]) => <Surface key={name} colors={c} style={styles.member}><View style={[styles.memberAvatar, { backgroundColor: c.tint }]}><Feather name="user" size={21} color={c.accent} /></View><View><Text style={[styles.body, { color: c.text }]}>{name}</Text><Text style={[styles.caption, { color: c.muted }]}>{role} · Sample member</Text></View></Surface>)}</>}
       {screen === "guides" && guides.map((guide) => <Surface key={guide.title} colors={c}><Text style={[styles.heading, { color: c.text }]}>{guide.title}</Text>{guide.steps.map((step, index) => <Text key={step} style={[styles.body, { color: c.muted, marginTop: 8 }]}>{index + 1}. {step}</Text>)}</Surface>)}
-      {screen === "hazards" && hazards.map((hazard) => <Surface key={hazard.title} colors={c}><Text style={[styles.heading, { color: c.text }]}>{hazard.title}</Text><Image source={hazard.source} resizeMode="contain" accessibilityLabel={hazard.title} style={styles.hazardImage} /></Surface>)}
       <Pressable accessibilityRole="button" onPress={() => setScreen("home")} style={[styles.back, { borderColor: c.border }]}><Feather name="arrow-left" size={17} color={c.accent} /><Text style={[styles.body, { color: c.accent }]}>Back to Dashboard</Text></Pressable>
     </ScrollView>
-    <DashboardPreviewNavigation theme={theme} active={screen === "settings" ? "profile" : screen} />
   </SafeAreaView>;
 }
 

@@ -31,10 +31,10 @@ const config: ExpoConfig = {
       "expo-splash-screen",
       {
         backgroundColor: "#f5f7fb",
-        image: "./assets/reference-brand.png",
+        image: "./assets/app-logo.png",
         dark: {
           backgroundColor: "#050810",
-          image: "./assets/reference-brand.png",
+          image: "./assets/app-logo.png",
         },
         imageWidth: 96,
       },

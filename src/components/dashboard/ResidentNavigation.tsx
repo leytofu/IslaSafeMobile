@@ -1,7 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { dashboardPalettes, type ThemeMode } from "../../theme/colors";
-import { ResidentUserBar } from "../ResidentUserBar";
 
 export const residentTabs = [
   { name: "home", title: "Home", icon: "home" },
@@ -18,11 +17,6 @@ export function ResidentTabIcon({ tab, focused, theme }: { tab: Tab; focused: bo
   return <View style={[styles.icon, emergency && styles.sos, focused && !emergency && { backgroundColor: colors.tint }]}>
     <Feather name={tab.icon} size={20} color={emergency ? "#ffffff" : focused ? colors.accent : colors.subtle} />
   </View>;
-}
-
-/** Static preview only. The app's existing Expo tabs retain their own events. */
-export function DashboardPreviewNavigation({ theme, name = "Juan Santos" }: { theme: ThemeMode; active?: string; name?: string }) {
-  return <ResidentUserBar theme={theme} user={{ name }} />;
 }
 
 const styles = StyleSheet.create({

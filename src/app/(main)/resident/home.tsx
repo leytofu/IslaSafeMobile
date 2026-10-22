@@ -6,7 +6,7 @@ import { ResidentHomeMap } from "../../../components/ResidentHomeMap";
 import { useApp } from "../../../state/AppState";
 
 export default function Home() {
-  const { user, theme, setTheme } = useApp();
+  const { user, theme } = useApp();
   return <ResidentDashboard
     name={user?.name.split(" ")[0]}
     barangay={user?.barangay || "Poblacion"}
@@ -14,10 +14,8 @@ export default function Home() {
     headerContent={<NavigationHeader title="Dashboard" subtitle="Your community" />}
     statusContent={<SessionNotices />}
     mapContent={<ResidentHomeMap />}
-    onToggleTheme={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }}
     onSos={() => router.navigate({ pathname: "/resident/sos", params: { prepare: "1" } })}
     onMap={() => router.navigate("/resident/map")}
     onGuides={() => router.navigate("/guides")}
-    onHazards={() => router.navigate("/hazards")}
   />;
 }

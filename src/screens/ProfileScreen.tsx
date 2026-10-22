@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { router } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Platform } from "react-native";
 import {
   Button,
@@ -19,6 +19,7 @@ import { ProfilePhotoEditor } from "../components/ProfilePhotoEditor";
 import { UserAvatar } from "../components/UserAvatar";
 import { avatarProfileForm } from "../lib/profile-photo";
 export default function ProfileScreen({ embedded = false }: { embedded?: boolean } = {}) {
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
   const {
     user,
     verified,
@@ -48,7 +49,7 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
   const [showOffline, setShowOffline] = useState(false);
   const lock = useRef(false);
   const isResident = user?.role === "residents";
-  function enterEdit() {
+  const enterEdit = useCallback(() => {
     setFields({
       name: user?.name || "",
       email: user?.email || "",
@@ -61,7 +62,14 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
     setMessage("");
     setError("");
     setEditProfile(true);
-  }
+  }, [user]);
+  useFocusEffect(useCallback(() => {
+    if (edit === "1") {
+      enterEdit();
+      setShowOffline(false);
+      router.setParams({ edit: "0" });
+    }
+  }, [edit, enterEdit]));
   async function run(task: () => Promise<void>) {
     if (lock.current) return;
     lock.current = true;
@@ -81,9 +89,9 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
     <Screen
       embedded={embedded}
       backDisabled={busy}
-      onBack={editProfile || showOffline ? () => { setEditProfile(false); setShowOffline(false); } : undefined}
+      onBack={(editProfile || showOffline) ? () => { setEditProfile(false); setShowOffline(false); } : undefined}
       backLabel={editProfile || showOffline ? (isResident ? "Back to settings" : "Back to profile") : "Back"}
-      title={user?.role === "residents" ? "Settings" : "Your profile"}
+      title="Settings"
       subtitle={
         user?.role === "campmanager"
           ? "Camp Manager account"
@@ -199,7 +207,7 @@ export default function ProfileScreen({ embedded = false }: { embedded?: boolean
           }
         />
         <Copy muted>
-          Guides and hazard reference images are bundled. Online maps are not
+          Preparedness guides are bundled. Online maps are not
           guaranteed offline. All submissions retain a secure local journal to
           prevent duplicate sends. Turning this setting off keeps existing
           records.

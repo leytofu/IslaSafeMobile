@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import { useFocusEffect, usePathname, type Href } from "expo-router";
-import { BackHandler, Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { BackHandler, Keyboard, StyleSheet, Text, View } from "react-native";
 import { useApp } from "../state/AppState";
 import { dashboardPalettes } from "../theme/colors";
 import { headerNavigation } from "../lib/navigation";
 import { BackButton } from "./BackButton";
+import { NotificationBell } from "./NotificationCenter";
 import { ResidentMenuButton } from "./ResidentMenu";
 
 export type NavigationBackProps = {
@@ -25,7 +25,7 @@ export function useDetailBack(onBack?: () => void, disabled = false) {
 }
 
 export function NavigationHeader({ title, subtitle, showBack = true, onBack, backDisabled, backLabel = "Back", backFallback }: NavigationBackProps & { title: string; subtitle?: string }) {
-  const { theme, user, verified, setTheme } = useApp();
+  const { theme, user, verified } = useApp();
   const pathname = usePathname();
   const colors = dashboardPalettes[theme];
   const mode = headerNavigation(pathname, Boolean(verified && user), Boolean(onBack), showBack);
@@ -37,11 +37,7 @@ export function NavigationHeader({ title, subtitle, showBack = true, onBack, bac
       <Text accessibilityRole="header" numberOfLines={1} style={[styles.title, { color: colors.text }]}>{title}</Text>
       {!!subtitle && <Text numberOfLines={2} style={[styles.subtitle, { color: colors.muted }]}>{subtitle}</Text>}
     </View>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-      onPress={() => { void setTheme(theme === "dark" ? "light" : "dark").catch(() => {}); }}
-      style={({ pressed }) => [styles.icon, { backgroundColor: pressed ? colors.tint : colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}>
-      <Feather name={theme === "dark" ? "sun" : "moon"} size={21} color={colors.text} />
-    </Pressable>
+    {verified && user && <NotificationBell />}
   </View>;
 }
 const styles = StyleSheet.create({

@@ -25,6 +25,7 @@ function header(pathname: string, theme: "dark" | "light", role: string | null =
     if (id === "../theme/colors") return { dashboardPalettes: { dark: colors, light: colors } };
     if (id === "../lib/navigation") return { headerNavigation };
     if (id === "./BackButton") return { BackButton: "BackButton" };
+    if (id === "./NotificationCenter") return { NotificationBell: "NotificationBell" };
     if (id === "./ResidentMenu") return { ResidentMenuButton: "MenuButton" };
     throw new Error(`Unexpected header dependency: ${id}`);
   } });
@@ -42,6 +43,9 @@ test("every main destination immediately renders one left menu and no Back in bo
         assert.equal(children[0].type, "MenuButton", `${destination.href} should start with its hamburger`);
         assert(!JSON.stringify(result).includes('"type":"BackButton"'));
         assert(JSON.stringify(result).includes(`${theme} background`));
+        assert(JSON.stringify(result).includes('"type":"NotificationBell"'));
+        assert(!JSON.stringify(result).includes("Switch to light theme"));
+        assert(!JSON.stringify(result).includes("Switch to dark theme"));
       }
     }
   }

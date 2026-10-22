@@ -61,7 +61,7 @@ export function SessionNotices() {
   );
   return <>
     {!online && (
-      <Notice text="Offline • Guides and reference maps are available. SOS requests must be reviewed and sent when connected." />
+      <Notice text="Offline • Preparedness guides are available. SOS requests must be reviewed and sent when connected." />
     )}
     {!!sessionMessage && <Notice text={sessionMessage} />}
     {online && savedCount > 0 && (
@@ -98,7 +98,7 @@ export function Screen({
   useDetailBack(embedded ? undefined : onBack, backDisabled);
   return (
     <SafeAreaView
-      edges={embedded ? [] : ["top", "left", "right"]}
+      edges={embedded ? [] : ["top", "bottom", "left", "right"]}
       style={[styles.flex, { backgroundColor: colors.bg }]}
     >
       <KeyboardAvoidingView

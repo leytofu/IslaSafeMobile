@@ -4,7 +4,7 @@ import * as Location from "expo-location";
 import { requestLocationPermission } from "../lib/location";
 import { createForegroundLocation, initialDeviceLocation, type DeviceLocationState } from "../lib/foreground-location";
 
-type DeviceLocationContext = DeviceLocationState & { refresh: () => void; openSettings: () => void };
+type DeviceLocationContext = DeviceLocationState & { refresh: () => Promise<void>; openSettings: () => void };
 const Context = createContext<DeviceLocationContext | null>(null);
 
 export function DeviceLocationProvider({ children }: { children: ReactNode }) {
@@ -36,7 +36,7 @@ export function DeviceLocationProvider({ children }: { children: ReactNode }) {
     if (AppState.currentState === "active") activate();
     return () => { subscription.remove(); location.dispose(); controller.current = null; };
   }, []);
-  return <Context.Provider value={{ ...state, refresh: () => { void controller.current?.start(true); }, openSettings: () => { void Linking.openSettings().catch(() => setState(previous => ({ ...previous, error: "Open your phone's settings and allow location access for this app." }))); } }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ ...state, refresh: () => controller.current?.start(true) ?? Promise.resolve(), openSettings: () => { void Linking.openSettings().catch(() => setState(previous => ({ ...previous, error: "Open your phone's settings and allow location access for this app." }))); } }}>{children}</Context.Provider>;
 }
 
 export function useDeviceLocation() {

@@ -1,5 +1,4 @@
-import { GuidesExperience } from "../../components/GuidesExperience";
+import { Redirect } from "expo-router";
 
-export default function Hazards() {
-  return <GuidesExperience initialTab="hazards" />;
-}
+// Retired links return to the remaining preparedness content.
+export default function Hazards() { return <Redirect href="/guides" />; }

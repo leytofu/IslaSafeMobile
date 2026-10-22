@@ -43,7 +43,7 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
       <View style={styles.viewport}>
         <Animated.View entering={playIntro ? FadeIn.duration(450).reduceMotion(ReduceMotion.System) : undefined} style={styles.header}>
           <View style={styles.brand}>
-            <View style={styles.logoFrame}><Image source={require("../../assets/reference-brand.png")} style={styles.logo} resizeMode="contain" accessibilityLabel="Municipality of President Carlos P. Garcia seal" /></View>
+            <View style={styles.logoFrame}><Image source={require("../../assets/app-logo.png")} style={styles.logo} resizeMode="contain" accessibilityLabel="Municipality of President Carlos P. Garcia seal" /></View>
             <View style={styles.brandCopy}><Text style={styles.brandName}>IslaSafe<Text style={styles.brandDot}>.</Text></Text><Text style={styles.brandLocation}>Pitogo Island, Bohol</Text></View>
           </View>
           <View style={styles.communityMark} accessible accessibilityLabel="Community safety"><Feather name="shield" size={19} color={colors.accent} /></View>
@@ -91,14 +91,14 @@ export function Onboarding({ playIntro }: { playIntro: boolean }) {
             <Feather name="arrow-right" size={19} color={colors.emergency} />
           </Pressable>
           <View style={styles.resources}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Guides. Safety guides and hazard references" accessibilityHint="Opens offline preparedness guides and hazard reference maps" onPress={() => { completeIntro(); router.push("/guides"); }} style={({ pressed }) => [styles.guidesCard, { backgroundColor: colors.card, borderColor: colors.border }, pressed && styles.pressed]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Preparedness guides" accessibilityHint="Opens offline preparedness guides" onPress={() => { completeIntro(); router.push("/guides"); }} style={({ pressed }) => [styles.guidesCard, { backgroundColor: colors.card, borderColor: colors.border }, pressed && styles.pressed]}>
               <View style={[styles.guidesIcon, { backgroundColor: colors.tint }]}><Feather name="book-open" size={19} color={colors.accent} /></View>
               <View style={styles.flex}>
                 <View style={styles.guidesTitleRow}>
                   <Text style={[styles.guidesTitle, { color: colors.text }]}>Guides</Text>
                   <View style={[styles.offlinePill, { backgroundColor: colors.tint }]}><Feather name="download-cloud" size={9} color={colors.accent} /><Text style={[styles.offlinePillText, { color: colors.accent }]}>Offline</Text></View>
                 </View>
-                <Text style={[styles.guidesDetail, { color: colors.muted }]}>Safety guides &amp; hazard references</Text>
+                <Text style={[styles.guidesDetail, { color: colors.muted }]}>Practical safety &amp; preparedness guides</Text>
               </View>
               <Feather name="chevron-right" size={18} color={colors.muted} />
             </Pressable>

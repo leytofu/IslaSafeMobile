@@ -18,7 +18,7 @@ export function SessionLoading() {
         <Animated.View entering={FadeIn.duration(550).reduceMotion(ReduceMotion.System)} style={[styles.orbit, light && styles.orbitLight]}>
           <View style={[styles.orbitInner, light && styles.orbitInnerLight]}>
             <View style={styles.logoFrame}>
-              <Image source={require("../../assets/reference-brand.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="IslaSafe logo" />
+              <Image source={require("../../assets/app-logo.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="IslaSafe logo" />
             </View>
           </View>
           <View style={styles.orbitDot} />

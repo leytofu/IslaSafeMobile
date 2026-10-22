@@ -1,6 +1,5 @@
 import { Redirect, Tabs } from "expo-router";
 import { residentTabs } from "../../../components/dashboard/ResidentNavigation";
-import { ResidentAccountBar } from "../../../components/ResidentAccountBar";
 import { dashboardPalettes } from "../../../theme/colors";
 import { SessionLoading } from "../../../components/SessionLoading";
 import { useApp } from "../../../state/AppState";
@@ -15,7 +14,7 @@ export default function ResidentLayout() {
     <Tabs
       backBehavior="history"
       detachInactiveScreens={false}
-      tabBar={() => <ResidentAccountBar />}
+      tabBar={() => null}
       screenOptions={{
         animation: "fade",
         headerShown: false,

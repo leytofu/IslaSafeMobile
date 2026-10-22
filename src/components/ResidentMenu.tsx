@@ -7,19 +7,17 @@ import { DrawerActions } from "expo-router/react-navigation";
 import { useDrawerStatus } from "expo-router/drawer";
 import Animated, { cancelAnimation, Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
-import { useApp } from "../state/AppState";
 import { dashboardPalettes, type ThemeMode } from "../theme/colors";
 import type { DashboardIcon } from "./dashboard/DashboardPrimitives";
 
-export type ResidentDestination = "home" | "map" | "sos" | "alerts" | "household" | "guides" | "hazards" | "settings";
+export type ResidentDestination = "home" | "map" | "sos" | "alerts" | "guides" | "settings";
 const destinations: { key: ResidentDestination; title: string; icon: DashboardIcon }[] = [
   { key: "home", title: "Dashboard", icon: "grid" },
   { key: "map", title: "Hazard Map", icon: "map" },
   { key: "sos", title: "Emergency SOS", icon: "radio" },
   { key: "alerts", title: "Alerts & Advisories", icon: "bell" },
-  { key: "household", title: "My Household", icon: "users" },
+  { key: "settings", title: "Settings", icon: "settings" },
   { key: "guides", title: "Preparedness Guides", icon: "book-open" },
-  { key: "hazards", title: "Offline Hazard Maps", icon: "layers" },
 ];
 
 function ResidentDrawer({ theme, onClose }: { theme: ThemeMode; onClose: (destination?: ResidentDestination) => void }) {
@@ -103,19 +101,6 @@ function PreviewMenuButton({ theme, onNavigate }: { theme: ThemeMode; onNavigate
   </>;
 }
 
-export function HouseholdSheet({ theme, visible, onClose }: { theme: ThemeMode; visible: boolean; onClose: () => void }) {
-  const { user } = useApp();
-  const colors = dashboardPalettes[theme];
-  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.sheetOverlay}><View style={[styles.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.brandName, { color: colors.text }]}>My Household</Text><Text style={[styles.linkLabel, { color: colors.muted }]}>Household records preview</Text>
-        <View style={[styles.householdCard, { backgroundColor: colors.tint }]}><Feather name="users" size={26} color={colors.accent} /><Text style={[styles.linkLabel, { color: colors.text }]}>{user?.name || "Juan Santos"}</Text><Text style={[styles.caption, { color: colors.muted }]}>{user?.barangay || "Poblacion"} · Household member</Text></View>
-        <Text style={[styles.body, { color: colors.muted }]}>This screen previews the household design. Member management and household safety reporting are not connected.</Text>
-        <Pressable accessibilityRole="button" onPress={onClose} style={[styles.closeButton, { backgroundColor: colors.primary }]}><Text style={styles.closeText}>Close</Text></Pressable>
-      </View></View>
-    </Modal>;
-}
-
 const styles = StyleSheet.create({
   menuButton: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   overlay: { flex: 1 }, backdrop: { backgroundColor: "#000" }, drawer: { flex: 1, borderRightWidth: 1 }, drawerContent: { flex: 1 },
@@ -124,8 +109,4 @@ const styles = StyleSheet.create({
   brandName: { fontSize: 23, fontWeight: "700", letterSpacing: -0.6 },
   caption: { fontSize: 10, lineHeight: 17, letterSpacing: 0.6 }, links: { padding: 10, gap: 2 },
   link: { minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 10, flexDirection: "row", alignItems: "center", gap: 10 }, linkLabel: { fontSize: 13, fontWeight: "500", lineHeight: 20 },
-  sheetOverlay: { flex: 1, backgroundColor: "#0008", justifyContent: "flex-end" },
-  sheet: { borderWidth: 1, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 15 },
-  householdCard: { borderRadius: 15, padding: 20, gap: 8 }, body: { fontSize: 13, lineHeight: 21 },
-  closeButton: { borderRadius: 12, padding: 15, alignItems: "center" }, closeText: { color: "#ffffff", fontSize: 14, fontWeight: "600" },
 });

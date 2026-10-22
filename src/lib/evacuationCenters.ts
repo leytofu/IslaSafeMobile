@@ -12,6 +12,7 @@ export type MapCenter = {
 };
 export type IslandMapProps = {
   compact?: boolean;
+  fullScreen?: boolean;
   centers: MapCenter[];
   selectedCenterId: number | null;
   onSelectCenter: (id: number) => void;

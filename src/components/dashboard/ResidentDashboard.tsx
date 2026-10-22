@@ -1,38 +1,32 @@
 import type { ReactNode } from "react";
-import { useWindowDimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { residentDashboardPreview as sample } from "../../data/residentDashboard";
 import { dashboardPalettes, type ThemeMode } from "../../theme/colors";
-import { Badge, dashboardType as type, IconButton, SectionTitle, Surface, type DashboardIcon } from "./DashboardPrimitives";
-import { DashboardPreviewNavigation } from "./ResidentNavigation";
+import { Badge, dashboardType as type, SectionTitle, Surface, type DashboardIcon } from "./DashboardPrimitives";
 
 export interface ResidentDashboardProps {
-  theme: ThemeMode; onToggleTheme: () => void; name?: string; barangay?: string;
-  showPreviewNavigation?: boolean;
+  theme: ThemeMode; name?: string; barangay?: string;
   statusContent?: ReactNode;
   menuControl?: ReactNode;
   headerContent?: ReactNode;
   mapContent?: ReactNode;
-  onSos?: () => void; onMap?: () => void; onGuides?: () => void; onHazards?: () => void;
+  onSos?: () => void; onMap?: () => void; onGuides?: () => void;
 }
 
 /** Presentation only: fixture cards never request data or dispatch emergencies. */
 export function ResidentDashboard({
-  theme, onToggleTheme, name = sample.name, barangay = sample.barangay,
-  showPreviewNavigation = false, statusContent, menuControl, headerContent, mapContent, onSos, onMap, onGuides, onHazards,
+  theme, name = sample.name, barangay = sample.barangay,
+  statusContent, menuControl, headerContent, mapContent, onSos, onMap, onGuides,
 }: ResidentDashboardProps) {
   const colors = dashboardPalettes[theme];
-  const { width, fontScale } = useWindowDimensions();
-  const compact = width < 360 || fontScale > 1.25;
   const actions: { title: string; icon: DashboardIcon; onPress?: () => void }[] = [
     { title: "Safety guides", icon: "book-open", onPress: onGuides },
-    { title: "Hazard maps", icon: "layers", onPress: onHazards },
     { title: "Evacuation", icon: "home", onPress: onMap },
-    { title: "My household", icon: "users" },
   ];
-  return <SafeAreaView edges={["top", "left", "right"]} style={[styles.root, { backgroundColor: colors.bg }]}>
+  return <SafeAreaView edges={["top", "bottom", "left", "right"]} style={[styles.root, { backgroundColor: colors.bg }]}>
     <StatusBar style={theme === "dark" ? "light" : "dark"} />
     {headerContent}
     <ScrollView testID="resident-dashboard-scroll" contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -41,9 +35,6 @@ export function ResidentDashboard({
           <View style={styles.greetingGroup}>
             {menuControl || <View style={[styles.brand, { backgroundColor: colors.tint }]}><Feather name="menu" size={23} color={colors.accent} /></View>}
             <View style={styles.greetingCopy}><Text style={[styles.greeting, { color: colors.muted }]}>Your community</Text><Text accessibilityRole="header" numberOfLines={1} style={[styles.name, { color: colors.text }]}>Dashboard</Text></View>
-          </View>
-          <View style={styles.headerActions}>
-            <IconButton colors={colors} icon={theme === "dark" ? "sun" : "moon"} label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} onPress={onToggleTheme} />
           </View>
         </View>}
         <View style={styles.location}><Feather name="map-pin" color={colors.subtle} size={12} /><Text style={[styles.locationText, { color: colors.muted }]}>{sample.location}</Text></View>
@@ -87,9 +78,6 @@ export function ResidentDashboard({
             </>}
           </View>
         </View>
-        <Surface colors={colors} style={[styles.readinessCard, { backgroundColor: colors.successSoft, borderColor: colors.successBorder }]}>
-          <View style={styles.flex}><Text style={[type.eyebrow, { color: colors.success }]}>HOUSEHOLD STATUS · SAMPLE</Text><Text style={[type.title, styles.cardTitle, { color: colors.success }]}>You’re Marked SAFE</Text><Text style={[type.body, { color: colors.muted }]}>Example household check-in status. No safety report has been submitted.</Text></View><View style={[styles.readinessIcon, { borderColor: colors.successBorder }]}><Feather name="check" size={27} color={colors.success} /></View>
-        </Surface>
         <View>
           <SectionTitle colors={colors} title="Recent Advisory" action="Sample" />
           <Surface colors={colors} style={styles.advisoryCard}><View style={[styles.advisoryIcon, { backgroundColor: colors.warningSoft }]}><Feather name="info" size={19} color={colors.warning} /></View><View style={styles.flex}><Text style={[styles.itemTitle, { color: colors.text }]}>{sample.advisory.title}</Text><Text style={[type.body, { color: colors.muted }]}>{sample.advisory.detail}</Text><Text style={[styles.caption, styles.source, { color: colors.subtle }]}>{sample.advisory.source}</Text></View></Surface>
@@ -103,12 +91,11 @@ export function ResidentDashboard({
           <Surface colors={colors} style={styles.hazardCard}>{sample.hazards.map((hazard, index) => <View key={hazard.name} style={[styles.hazardRow, index > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}><View style={styles.inline}><Feather name={hazard.icon} size={16} color={colors.muted} /><Text style={[type.body, { color: colors.text }]}>{hazard.name}</Text></View><Badge label={hazard.status} color={hazard.tone === "success" ? colors.success : colors.warning} background={hazard.tone === "success" ? colors.successSoft : colors.warningSoft} /></View>)}</Surface>
         </View>
         <View style={styles.quickActions}>
-          {actions.map((action) => <Pressable key={action.title} disabled={!action.onPress} accessibilityRole="button" accessibilityState={{ disabled: !action.onPress }} accessibilityLabel={action.title + (!action.onPress ? " preview" : "")} onPress={action.onPress} style={({ pressed }) => [styles.quickAction, { width: compact ? "47%" : "23%", backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={[styles.quickIcon, { backgroundColor: colors.tint }]}><Feather name={action.icon} size={19} color={colors.accent} /></View><Text style={[styles.quickLabel, { color: colors.text }]}>{action.title}</Text></Pressable>)}
+          {actions.map((action) => <Pressable key={action.title} disabled={!action.onPress} accessibilityRole="button" accessibilityState={{ disabled: !action.onPress }} accessibilityLabel={action.title + (!action.onPress ? " preview" : "")} onPress={action.onPress} style={({ pressed }) => [styles.quickAction, { width: "47%", backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={[styles.quickIcon, { backgroundColor: colors.tint }]}><Feather name={action.icon} size={19} color={colors.accent} /></View><Text style={[styles.quickLabel, { color: colors.text }]}>{action.title}</Text></Pressable>)}
         </View>
         <View style={styles.offlineFootnote}><Feather name="download-cloud" size={14} color={colors.subtle} /><Text style={[styles.caption, { color: colors.subtle }]}>Your preparedness guides are available offline.</Text></View>
       </View>
     </ScrollView>
-    {showPreviewNavigation && <DashboardPreviewNavigation theme={theme} name={name} />}
   </SafeAreaView>;
 }
 
